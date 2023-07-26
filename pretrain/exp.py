@@ -73,6 +73,7 @@ class Exp_Main:
             for i, (enc_x, dec_x, gt_x) in enumerate(vali_loader):
                 enc_x = enc_x.float().to(self.device)
                 dec_x = dec_x.float().to(self.device)
+                gt_x = gt_x.float().to(self.device)
                 outputs, loss = self.model(enc_x, dec_x, gt_x)
                 total_loss.append(loss.item())
         total_loss = np.average(total_loss)
@@ -111,7 +112,7 @@ class Exp_Main:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    # print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
                     iter_count = 0
                     time_now = time.time()
 
