@@ -10,9 +10,9 @@ class Dataset_Pretrain(Dataset):
                  input_len: int=5,
                  pred_len: int=1):
         self.trans = Mask(max_car_num=max_car_num)  # max_seq_len=max_seq_len
-        self.LONG_SCALE = 300
-        self.LATI_SCALE = 100
-        self.SIZE_SCALE = 20
+        self.LONG_SCALE = 10
+        self.LATI_SCALE = 10
+        self.SIZE_SCALE = 10
         self.max_car_num = max_car_num  # c_in = max_car_num * 4
         self.input_len = input_len
         self.pred_len = pred_len

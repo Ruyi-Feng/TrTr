@@ -37,7 +37,7 @@ class Mask():
         self._poisson_rate = poisson_rate
         self._max_span_len = max_span_len
         self._poisson_dist = self._build_poisson_dist()
-        self._mask_token = np.ones(max_car_num*4).tolist()
+        self._mask_token = (np.ones(max_car_num*4) * -1).tolist()
 
     def _build_poisson_dist(self) -> torch.distributions.Categorical:
         lambda_to_the_k = 1
