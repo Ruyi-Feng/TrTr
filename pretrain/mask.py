@@ -32,10 +32,6 @@ class Mask():
         when add noise by randomly mask vehicles of one frame,
         msk_rate percent of vehicles will be masked in one frame.
         """
-        # self.MAX_CAR_NUM = 80
-        self.LONG_SCALE = 300
-        self.LATI_SCALE = 100
-        self.SIZE_SCALE = 20
         self.noise_rate = noise_rate
         self.msk_rate = msk_rate
         self._poisson_rate = poisson_rate
@@ -119,25 +115,6 @@ class Mask():
     def _if_noise(self) -> bool:
         return random.random() < self.noise_rate
 
-    def _pre_process(self, sec):
-        """
-        sec: np.array
-        [
-            [xywh1, xywh2, ...],
-            [xywh1, xywh2, ...],
-        ]
-        """
-        if len(sec) < 1:
-            return sec
-        loop = len(sec[0]) // 4
-        for i in range(loop):
-            sec[:, i * 4 + 0] = sec[:, i * 4 + 0] / self.LONG_SCALE
-            sec[:, i * 4 + 1] = sec[:, i * 4 + 1] / self.LATI_SCALE
-            sec[:, i * 4 + 2] = sec[:, i * 4 + 2] / self.SIZE_SCALE
-            sec[:, i * 4 + 3] = sec[:, i * 4 + 3] / self.SIZE_SCALE
-        return sec
-
-
     def _trans_type(self) -> int:
         return random.randint(0, 1)
 
@@ -161,8 +138,8 @@ class Mask():
         min_id, max_id = sorted(ids)
         pre_frms = x[:min_id]
         post_frms = x[max_id+1:]
-        frm1 = x[min_id]
-        frm2 = x[max_id]
+        frm1 = x[min_id].reshape(1, -1)
+        frm2 = x[max_id].reshape(1, -1)
         inter_frms = x[min_id + 1: max_id]
         return np.concatenate((pre_frms, frm2, inter_frms, frm1, post_frms), axis=0)
 
@@ -191,7 +168,6 @@ class Mask():
 
         enc_mark means how many lines in each frames in enc_x
         """
-        x = self._pre_process(x)
         dec_x = copy.deepcopy(x)
         x_copy = copy.deepcopy(x)
         if self._if_noise():

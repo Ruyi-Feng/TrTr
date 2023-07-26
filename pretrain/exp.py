@@ -19,6 +19,8 @@ class Exp_Main:
         self.args = args
         if self.args.task != "pretrain":
             self.args.save_path = self.args.save_path + 'finetune/' + self.args.task + '/'
+        else:
+            self.args.save_path = self.args.save_path + 'pretrain/'
         self.best_score = None
         self.WARMUP = 4000
         self.device = torch.device('cuda', local_rank)
@@ -28,7 +30,7 @@ class Exp_Main:
         self.model = self._build_model()
 
     def _build_model(self):
-        model = Bart(self.args).float().to(self.device)
+        model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.save_path + 'checkpoint_best.pth'):
             model.load_state_dict(torch.load(self.args.save_path + 'checkpoint_best.pth', map_location=torch.device('cpu')))
         elif os.path.exists(self.args.save_path + 'checkpoint_last.pth'):
@@ -37,7 +39,11 @@ class Exp_Main:
 
     def _get_data(self):
         batch_sz = self.args.batch_size
-        data_set = Dataset_Bart(index_path=self.args.index_path, data_path=self.args.data_path, max_seq_len=self.args.max_seq_len)
+        data_set = Dataset_Pretrain(index_path=self.args.index_path,
+                                    data_path=self.args.data_path,
+                                    max_car_num=self.args.max_car_num,
+                                    input_len=self.args.input_len,
+                                    pred_len=self.args.pred_len)
         sampler = None
         drop_last = False
         if self.args.is_train:

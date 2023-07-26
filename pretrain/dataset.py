@@ -10,6 +10,9 @@ class Dataset_Pretrain(Dataset):
                  input_len: int=5,
                  pred_len: int=1):
         self.trans = Mask(max_car_num=max_car_num)  # max_seq_len=max_seq_len
+        self.LONG_SCALE = 300
+        self.LATI_SCALE = 100
+        self.SIZE_SCALE = 20
         self.max_car_num = max_car_num  # c_in = max_car_num * 4
         self.input_len = input_len
         self.pred_len = pred_len
@@ -50,13 +53,15 @@ class Dataset_Pretrain(Dataset):
         new_inter = set()
         for k in intersection:
             new_inter.add(k)
-            if len(new_inter) >= self.max_car_num - 1:
+            if len(new_inter) >= self.max_car_num:
                 break
         return new_inter
 
     def _form_dataset(self, continue_car: set, trj_per_car: dict) -> np.array:
-        total_data = np.array()
+        total_data = []
         pad_num = self.max_car_num - len(continue_car)
+        # print("pad_num", pad_num, "continues", len(continue_car))
+        tmp = np.zeros((self.input_len + self.pred_len, 4))
         for car in continue_car:
             tmp = np.array(trj_per_car[car])[:, 2:]
             if len(total_data):
@@ -64,6 +69,9 @@ class Dataset_Pretrain(Dataset):
             else:
                 total_data = tmp
         for pad in range(pad_num):
+            if len(total_data) == 0:
+                total_data = tmp
+                continue
             total_data = np.concatenate((total_data, np.zeros(tmp.shape)), axis=1)
         return total_data
 
@@ -78,7 +86,26 @@ class Dataset_Pretrain(Dataset):
         trj_per_car, car_per_frm = self._load(info)
         continue_car = self._intersection(car_per_frm)
         x = self._form_dataset(continue_car, trj_per_car)
+        x = self._pre_process(x)
         return x[: self.input_len], x[self.input_len: self.input_len + self.pred_len]
+
+    def _pre_process(self, sec):
+        """
+        sec: np.array
+        [
+            [xywh1, xywh2, ...],
+            [xywh1, xywh2, ...],
+        ]
+        """
+        if len(sec) < 1:
+            return sec
+        loop = len(sec[0]) // 4
+        for i in range(loop):
+            sec[:, i * 4 + 0] = sec[:, i * 4 + 0] / self.LONG_SCALE
+            sec[:, i * 4 + 1] = sec[:, i * 4 + 1] / self.LATI_SCALE
+            sec[:, i * 4 + 2] = sec[:, i * 4 + 2] / self.SIZE_SCALE
+            sec[:, i * 4 + 3] = sec[:, i * 4 + 3] / self.SIZE_SCALE
+        return sec
 
     def __getitem__(self, index: int):
         """

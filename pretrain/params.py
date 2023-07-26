@@ -1,10 +1,11 @@
 import argparse
 
 def params():
-    parser = argparse.ArgumentParser(description='Non-stationary Transformers for Time Series Forecasting')
+    parser = argparse.ArgumentParser(description='transformer parameters')
+    parser.add_argument('--task', type=str, default='pretrain', help='pretrain or sepecific finetune tasks')
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
-    parser.add_argument('--index_path', type=str, default='./data/index.bin')
-    parser.add_argument('--data_path', type=str, default='./data/data.bin')
+    parser.add_argument('--index_path', type=str, default='./data/train/index.bin')
+    parser.add_argument('--data_path', type=str, default='./data/train/data.bin')
 
     parser.add_argument('--is_train', type=bool, default=True, help='if True is train model')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='original leaning rate')
