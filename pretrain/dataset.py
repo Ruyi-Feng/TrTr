@@ -1,6 +1,7 @@
 import numpy as np
 from pretrain.mask import Mask
 from torch.utils.data import Dataset
+import torch_npu
 
 
 class Dataset_Pretrain(Dataset):

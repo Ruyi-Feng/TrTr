@@ -11,7 +11,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from trtr.net import Trtr
-
+import torch_npu
+from torch_npu.npu import amp
 
 
 class Exp_Main:
@@ -23,10 +24,10 @@ class Exp_Main:
             self.args.save_path = self.args.save_path + 'pretrain/'
         self.best_score = None
         self.WARMUP = 4000
-        self.device = torch.device('cuda', local_rank)
+        self.device = torch.device('npu', local_rank)
         self.local_rank = local_rank
-        torch.cuda.set_device(local_rank)
-        dist.init_process_group(backend='nccl', timeout=timedelta(days=1))
+        torch_npu.npu.set_device(local_rank)
+        dist.init_process_group(backend='hccl', timeout=timedelta(days=1))
         self.model = self._build_model()
 
     def _build_model(self):
@@ -74,7 +75,8 @@ class Exp_Main:
                 enc_x = enc_x.float().to(self.device)
                 dec_x = dec_x.float().to(self.device)
                 gt_x = gt_x.float().to(self.device)
-                outputs, loss = self.model(enc_x, dec_x, gt_x)
+                with amp.autocast():
+                    outputs, loss = self.model(enc_x, dec_x, gt_x)
                 total_loss.append(loss.item())
         total_loss = np.average(total_loss)
         self.model.train()
@@ -89,6 +91,7 @@ class Exp_Main:
         path = self.args.save_path + 'checkpoint_'
 
         model_optim, scheduler = self._select_optimizer()
+        scaler = amp.GradScaler()
 
         for epoch in range(self.args.train_epochs):
             train_loader.sampler.set_epoch(epoch)
@@ -105,7 +108,8 @@ class Exp_Main:
                 dec_x = dec_x.float().to(self.device)
                 gt_x = gt_x.float().to(self.device)
 
-                _, loss = self.model(enc_x, dec_x, gt_x)
+                with amp.autocast():
+                    _, loss = self.model(enc_x, dec_x, gt_x)
                 train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
@@ -116,8 +120,9 @@ class Exp_Main:
                     iter_count = 0
                     time_now = time.time()
 
-                loss.backward()
-                model_optim.step()
+                scaler.scale(loss).backward()
+                scaler.step(model_optim)
+                scaler.update()
                 scheduler.step()
 
             if dist.get_rank() == 0:
@@ -143,7 +148,8 @@ class Exp_Main:
                 for i, (enc_x, dec_x, gt_x) in enumerate(test_loader):
                     enc_x = enc_x.float().to(self.device)
                     dec_x = dec_x.float().to(self.device)
-                    output, loss = self.model(enc_x, dec_x, gt_x, infer=True)
+                    with amp.autocast():
+                        output, loss = self.model(enc_x, dec_x, gt_x, infer=True)
                     output = output.detach().cpu().numpy()
                     gt_x = gt_x.detach().cpu().numpy()
                     outputs.append(output)
