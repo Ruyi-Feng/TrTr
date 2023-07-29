@@ -15,10 +15,10 @@ class Data_Compensation(Dataset_Base):
                  input_len: int=5,
                  pred_len: int=1):
         super(Data_Compensation, self).__init__(index_path, data_path, max_car_num, input_len, pred_len)
-        self._poisson_dist = self._build_poisson_dist()
         self._poisson_rate = 3
         self._max_span_len = 5
         self._mask_token = np.ones(max_car_num*4) * -1
+        self._poisson_dist = self._build_poisson_dist()
 
     def _build_poisson_dist(self) -> torch.distributions.Categorical:
         lambda_to_the_k = 1
@@ -59,7 +59,7 @@ class Data_Compensation(Dataset_Base):
                 current_span -= 1
                 token_under_mask.append(tokens[i, :].tolist())
                 tokens[i, :] = self._mask_token
-        return tokens, tokens.copy(), np.array(token_under_mask)
+        return tokens, np.array(token_under_mask)
 
     def _distribute_insert_poses(self, abs_insert_poses: typing.List[int], spans: typing.List[int]) -> MaskScheme:
         offset = 0
@@ -79,7 +79,7 @@ class Data_Compensation(Dataset_Base):
 
     def _pad(self, gt, x, pad_len):
         for i in range(pad_len):
-            gt = np.append(gt, x[self.input_len + i, :])
+            gt = np.concatenate((gt, x[self.input_len + i, :]), axis=0)
         return gt
 
     def _process(self, x):
@@ -94,15 +94,19 @@ class Data_Compensation(Dataset_Base):
         total_msk = random.randint(self.pred_len/2, self.pred_len)
         spans = self._gen_spans(total_msk)  # 生成总数不超过10个的span
         pad_len = self.pred_len - sum(spans)   # 计算需要补上多少个未来值
+        print("sum", sum(spans))
         n_spans = len(spans)
-        n_possible_insert_poses = total_msk - sum(spans) - n_spans + 1
+        n_possible_insert_poses = self.input_len - sum(spans) - n_spans + 1
         abs_insert_poses = sorted(random.sample(
             range(n_possible_insert_poses), n_spans))
         mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
         mask_scheme = self._random_add_one(mask_scheme)
         enc, gt = self._mask(enc, mask_scheme)
+        print("gt1.shape", gt.shape)
         gt = self._pad(gt, x, pad_len)  # 给gt增加pad的未来值
         dec = enc.copy()
+        print("gt2.shape", gt.shape)
+        print("dec.shape", dec.shape)
         return enc, dec, gt
 
 

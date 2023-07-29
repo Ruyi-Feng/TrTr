@@ -9,7 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 from trtr.net import Trtr, CompTrtr, SumTrtr, ContTrtr
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
-from train.utils import metric
+from pretrain.utils import metric
 
 
 class Exp_Ft:
