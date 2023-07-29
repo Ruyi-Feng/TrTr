@@ -137,22 +137,17 @@ class Exp_Main:
         if dist.get_rank() == 0:
             test_data, test_loader = self._get_data()
             self.model.eval()
-            outputs = []
-            trues = []
+            result = dict()
             with torch.no_grad():
                 for i, (enc_x, dec_x, gt_x) in enumerate(test_loader):
+                    print("test step: %d"%i)
                     enc_x = enc_x.float().to(self.device)
                     dec_x = dec_x.float().to(self.device)
-                    output, loss = self.model(enc_x, dec_x, gt_x, infer=True)
-                    output = output.detach().cpu().numpy()
-                    gt_x = gt_x.detach().cpu().numpy()
-                    outputs.append(output)
-                    trues.append(gt_x)
-                    break
-            outputs = np.array(outputs)
-            outputs = outputs.reshape(-1, outputs.shape[-2], outputs.shape[-1])
-            trues = np.array(trues)
-            trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
-            mae, mse, rmse, mape, mspe = metric(outputs, trues)
-            print('mse:{}, mae:{}'.format(mse, mae))
-            return trues, outputs
+                    output, loss = self.model(enc_x, dec_x, gt_x)
+                    output = output.detach().cpu().tolist()
+                    gt_x = gt_x.detach().cpu().tolist()
+                    enc_x = enc_x.detach().cpu().tolist()  # batch, seq_len, d_model
+                    result.update({i: {"gt": gt_x, "pd": output, "enc": enc_x}})
+                    if i > 30:
+                        break
+            return result
