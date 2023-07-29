@@ -1,5 +1,6 @@
 from finetune.dataset_base import Dataset_Base
 import numpy as np
+import math
 import random
 import torch
 import typing
@@ -16,6 +17,8 @@ class Data_Compensation(Dataset_Base):
         super(Data_Compensation, self).__init__(index_path, data_path, max_car_num, input_len, pred_len)
         self._poisson_dist = self._build_poisson_dist()
         self._poisson_rate = 3
+        self._max_span_len = 5
+        self._mask_token = np.ones(max_car_num*4) * -1
 
     def _build_poisson_dist(self) -> torch.distributions.Categorical:
         lambda_to_the_k = 1
