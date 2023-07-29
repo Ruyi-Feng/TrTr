@@ -94,7 +94,6 @@ class Data_Compensation(Dataset_Base):
         total_msk = random.randint(self.pred_len/2, self.pred_len)
         spans = self._gen_spans(total_msk)  # 生成总数不超过10个的span
         pad_len = self.pred_len - sum(spans)   # 计算需要补上多少个未来值
-        print("sum", sum(spans))
         n_spans = len(spans)
         n_possible_insert_poses = self.input_len - sum(spans) - n_spans + 1
         abs_insert_poses = sorted(random.sample(
@@ -102,11 +101,8 @@ class Data_Compensation(Dataset_Base):
         mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
         mask_scheme = self._random_add_one(mask_scheme)
         enc, gt = self._mask(enc, mask_scheme)
-        print("gt1.shape", gt.shape)
         gt = self._pad(gt, x, pad_len)  # 给gt增加pad的未来值
         dec = enc.copy()
-        print("gt2.shape", gt.shape)
-        print("dec.shape", dec.shape)
         return enc, dec, gt
 
 
