@@ -1,5 +1,8 @@
 from finetune.exp import Exp_Ft
 from finetune.params import params as finetune_param
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 import os
 import json
 
@@ -47,16 +50,16 @@ class Evaluation:
             rslt = json.dump(rslt, f)
 
     def check_results(self, check_list: list=[], rslt_path: str="./results/rslt.json"):
-        if "mse" in check_list:
-            self._check_mse(rslt_path)
+        if "rmse" in check_list:
+            rmse = self._check_rmse(rslt_path)
+            print("------%s-------"%self.args.task)
+            print("pd gt rmse:", rmse)
         if "overlap" in check_list:
             num, total = self._check_overlap(rslt_path)
-            print("------%s-------", self.args.task)
+            print("------%s-------"%self.args.task)
             print("overlap num | total: ", num, total, num/total)
         if "spd_stable" in check_list:
             self._check_spd_stable(rslt_path)
-        if "simulate" in check_list:
-            self._check_simulate(rslt_path)
 
     def _stand(self, gt, pd, enc):
         gt_new, pd_new, enc_new = [], [], []
@@ -90,7 +93,9 @@ class Evaluation:
         overlap = 0
         for i in range(len(boxes)):
             for j in range(i+1, len(boxes)):
-                overlap += self._intersect(boxes[i][2:], boxes[j][2:])
+                if boxes[i][0] == 0:
+                    continue
+                overlap += self._intersect(boxes[i], boxes[j])
         return overlap
 
     def _count_overlap(self, pd):
@@ -98,15 +103,9 @@ class Evaluation:
         last_frm = 0
         overlap = 0
         boxes = []
-        for line in pd:
-            if line[0] != last_frm:
-                if line[0] == 0:
-                    break
-                overlap += self._overlaps(boxes)
-                boxes = []
-                last_frm = line[0]
-            boxes.append(line)
-        overlap += self._overlaps(boxes)
+        for line in pd:   # xywh xywh
+            boxes = np.array(line).reshape((-1, 4))
+            overlap += self._overlaps(boxes)
         return overlap
 
     def _check_overlap(self, save_path):
@@ -118,16 +117,51 @@ class Evaluation:
         overlap = 0
         total_num = 0
         for k in info:
-            total_num += len(info[k]["gt"])
-            overlap += self._count_overlap(info[k]["pd"])
+            for batch in range(len(info[k]["gt"])):
+                total_num += (len(info[k]["gt"][batch][0])//4)
+                overlap += self._count_overlap(info[k]["pd"][batch])
         return overlap, total_num
 
-    def _check_mse(self, rslt_path):
-        pass
+    def _check_rmse(self, rslt_path):
+        # 返回真实m为单位的rmse
+        info = self.load(rslt_path)
+        """
+        info: dict
+        {k: {"gt": [], "pd": [], "enc": []}}
+        """
+        square = 0
+        n = 0
+        for k in info:
+            for batch in range(len(info[k]["gt"])):
+                square += np.sum(np.square(np.array(info[k]["gt"][batch]) - np.array(info[k]["pd"][batch])))
+                n += np.array(info[k]["gt"][batch]).size
+        return np.sqrt(square / n) * 10
 
-    def _check_spd_stable(self, save_path):
-        pass
+    def _draw_dv_distribution(self, dv):
+        plt.figure()
+        plt.grid()
+        # sns.kdeplot(dv)
+        percent_95 = np.percentile(dv, 95)
+        print(percent_95)
+        percent_5 = np.percentile(dv, 5)
+        print(percent_5)
+        sns.kdeplot(dv, color='r')
+        plt.plot([percent_95,percent_95], [0, 1], 'b')
+        plt.plot([percent_5,percent_5], [0, 1], 'b')
+        # plt.hist(dv)
+        plt.title("speed difference distribution <m>")
+        plt.show()
 
-    def _check_simulate(self, save_path):
-        pass
+    def _check_spd_stable(self, rslt_path):
+        info = self.load(rslt_path)
+        dv = []
+        for k in info:
+            max_car_num = len(info[k]["gt"][0][0]) // 4
+            for batch in range(len(info[k]["gt"])):
+                for i in range(max_car_num):
+                    v_gt = abs(info[k]["gt"][batch][-1][i * 4] - info[k]["gt"][batch][0][i * 4])
+                    v_pd = abs(info[k]["pd"][batch][-1][i * 4] - info[k]["pd"][batch][0][i * 4])
+                    dv.append((v_gt - v_pd) * 3 * 10)
+        self._draw_dv_distribution(dv)
+        return dv
 

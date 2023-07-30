@@ -148,6 +148,6 @@ class Exp_Main:
                     gt_x = gt_x.detach().cpu().tolist()
                     enc_x = enc_x.detach().cpu().tolist()  # batch, seq_len, d_model
                     result.update({i: {"gt": gt_x, "pd": output, "enc": enc_x}})
-                    if i > 30:
+                    if i > 60:
                         break
             return result
