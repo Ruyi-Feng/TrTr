@@ -1,4 +1,4 @@
-from evaluation import Evaluation
+from evaluation.evaluation import Evaluation
 import os
 
 

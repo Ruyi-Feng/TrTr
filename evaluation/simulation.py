@@ -52,7 +52,7 @@ def renew(enc_x, output):
     new_dec = new_enc.copy()
     return new_enc, new_dec
 
-def run(args, rslt_path, sample, local_rank=-1, loops=30):
+def run(args, rslt_path, sample, local_rank=-1, loops=20):
     print("save path", args.save_path)
     device, model = load_model(args, args.save_path+"pretrain/", local_rank)
     enc_x, dec_x, gt_x = init_data(rslt_path, sample)

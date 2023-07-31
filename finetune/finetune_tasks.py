@@ -79,6 +79,9 @@ class Data_Compensation(Dataset_Base):
 
     def _pad(self, gt, x, pad_len):
         for i in range(pad_len):
+            if len(gt[0]) == 0:
+                gt = np.expand_dims(x[self.input_len + i, :], axis=0)
+                continue
             gt = np.concatenate((gt, np.expand_dims(x[self.input_len + i, :], axis=0)), axis=0)
         return gt
 
@@ -91,7 +94,7 @@ class Data_Compensation(Dataset_Base):
         # [[frame, id, x, y, w, h], ...]
         # 泊松挖空，总共随机挖n个，n小于10，10-n补到末尾
         enc = x[:self.input_len]
-        total_msk = random.randint(self.pred_len/2, self.pred_len)
+        total_msk = random.randint(3, self.pred_len/2)
         spans = self._gen_spans(total_msk)  # 生成总数不超过10个的span
         pad_len = self.pred_len - sum(spans)   # 计算需要补上多少个未来值
         n_spans = len(spans)
