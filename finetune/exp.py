@@ -156,7 +156,7 @@ class Exp_Ft:
                     print("test step: %d"%i)
                     enc_x = enc_x.float().to(self.device)
                     dec_x = dec_x.float().to(self.device)
-                    output, loss = self.model(enc_x, dec_x, gt_x, infer=True)
+                    output, loss = self.model(enc_x, dec_x, gt_x)
                     output = output.detach().cpu().tolist()
                     gt_x = gt_x.detach().cpu().tolist()
                     enc_x = enc_x.detach().cpu().tolist()  # batch, seq_len, d_model

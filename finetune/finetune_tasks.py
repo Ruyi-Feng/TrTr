@@ -79,7 +79,7 @@ class Data_Compensation(Dataset_Base):
 
     def _pad(self, gt, x, pad_len):
         for i in range(pad_len):
-            gt = np.concatenate((gt, x[self.input_len + i, :]), axis=0)
+            gt = np.concatenate((gt, np.expand_dims(x[self.input_len + i, :], axis=0)), axis=0)
         return gt
 
     def _process(self, x):
