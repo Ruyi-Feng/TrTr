@@ -8,7 +8,7 @@ import json
 
 
 class Evaluation:
-    def __init__(self, if_pretrain: bool=False, task: str="compensation"):
+    def __init__(self, if_pretrain: bool = False, task: str = "compensation"):
         self.args = finetune_param()
         self.args.data_path = './data/val/data.bin'
         self.args.index_path = './data/val/index.bin'
@@ -49,17 +49,23 @@ class Evaluation:
         with open(rslt_path, "w") as f:
             rslt = json.dump(rslt, f)
 
-    def check_results(self, check_list: list=[], rslt_path: str="./results/rslt.json"):
+    def check_results(self, check_list: list = [], rslt_path: str = "./results/rslt.json"):
         if "rmse" in check_list:
             rmse = self._check_rmse(rslt_path)
-            print("------%s-------"%self.args.task)
+            print("------%s-------" % self.args.task)
             print("pd gt rmse:", rmse)
         if "overlap" in check_list:
             num, total = self._check_overlap(rslt_path)
-            print("------%s-------"%self.args.task)
+            print("------%s-------" % self.args.task)
             print("overlap num | total: ", num, total, num/total)
         if "spd_stable" in check_list:
             self._check_spd_stable(rslt_path)
+        if "iou" in check_list:
+            print("------%s-------" % self.args.task)
+            print("average iou ", self._check_iou(rslt_path))
+        if "DCN" in check_list:
+            print("------%s-------" % self.args.task)
+            print("DCN num: ", self._check_DCN(rslt_path))
 
     def _stand(self, gt, pd, enc):
         gt_new, pd_new, enc_new = [], [], []
@@ -79,8 +85,10 @@ class Evaluation:
         new_rslt = dict()
         for k, values in rslt.items():
             for batch in range(len(values["gt"])):
-                gt, pd, enc = self._stand(values["gt"][batch], values["pd"][batch], values["enc"][batch])
-                new_rslt.update({str(k) + str(batch): {"gt": gt, "pd": pd, "enc": enc}})
+                gt, pd, enc = self._stand(
+                    values["gt"][batch], values["pd"][batch], values["enc"][batch])
+                new_rslt.update(
+                    {str(k) + str(batch): {"gt": gt, "pd": pd, "enc": enc}})
         return new_rslt
 
     def _dis(self, a1, a2, w1, w2):
@@ -99,7 +107,7 @@ class Evaluation:
         return overlap
 
     def _count_overlap(self, pd):
-        ##### 需要排除预测0值
+        # 需要排除预测0值
         last_frm = 0
         overlap = 0
         boxes = []
@@ -133,7 +141,8 @@ class Evaluation:
         n = 0
         for k in info:
             for batch in range(len(info[k]["gt"])):
-                square += np.sum(np.square(np.array(info[k]["gt"][batch]) - np.array(info[k]["pd"][batch])))
+                square += np.sum(
+                    np.square(np.array(info[k]["gt"][batch]) - np.array(info[k]["pd"][batch])))
                 n += np.array(info[k]["gt"][batch]).size
         return np.sqrt(square / n) * 10
 
@@ -146,8 +155,8 @@ class Evaluation:
         percent_5 = np.percentile(dv, 5)
         print(percent_5)
         sns.kdeplot(dv, color='r')
-        plt.plot([percent_95,percent_95], [0, 1], 'b')
-        plt.plot([percent_5,percent_5], [0, 1], 'b')
+        plt.plot([percent_95, percent_95], [0, 1], 'b')
+        plt.plot([percent_5, percent_5], [0, 1], 'b')
         # plt.hist(dv)
         plt.title("speed difference distribution <m>")
         plt.show()
@@ -159,9 +168,71 @@ class Evaluation:
             max_car_num = len(info[k]["gt"][0][0]) // 4
             for batch in range(len(info[k]["gt"])):
                 for i in range(max_car_num):
-                    v_gt = abs(info[k]["gt"][batch][-1][i * 4] - info[k]["gt"][batch][0][i * 4])
-                    v_pd = abs(info[k]["pd"][batch][-1][i * 4] - info[k]["pd"][batch][0][i * 4])
+                    v_gt = abs(info[k]["gt"][batch][-1]
+                               [i * 4] - info[k]["gt"][batch][0][i * 4])
+                    v_pd = abs(info[k]["pd"][batch][-1]
+                               [i * 4] - info[k]["pd"][batch][0][i * 4])
                     dv.append((v_gt - v_pd) * 3 * 10)
         self._draw_dv_distribution(dv)
         return dv
 
+    def _iou(self, gt_box, b_box):
+        width0 = gt_box[2]
+        height0 = gt_box[3]
+        width1 = b_box[2]
+        height1 = b_box[3]
+        max_x = max(gt_box[0]+0.5*width0, b_box[0]+0.5*width1)
+        min_x = min(gt_box[0]-0.5*width0, b_box[0]-0.5*width1)
+        width = width0 + width1 - (max_x - min_x)
+        max_y = max(gt_box[1]+0.5*height0, b_box[1]+0.5*height1)
+        min_y = min(gt_box[1]-0.5*height0, b_box[1]-0.5*height1)
+        height = height0 + height1 - (max_y - min_y)
+        if width <= 0 or height <= 0:
+            return 0
+        interArea = width * height
+        boxAArea = width0 * height0
+        boxBArea = width1 * height1
+        if boxAArea + boxBArea - interArea == 0:
+            return 1
+        iou = interArea / (boxAArea + boxBArea - interArea)
+        return iou
+
+    def _calcu_iou(self, gt, pd):
+        max_car_num = len(gt) // 4
+        iou = 0
+        num = 0
+        for i in range(max_car_num):
+            if gt[i*4] == 0:
+                continue
+            iou += self._iou(gt[i*4: i*4+4], pd[i*4: i*4+4])
+            num += 1
+        return iou, num
+
+    def _check_iou(self, rslt_path):
+        info = self.load(rslt_path)
+        sum_iou = 0
+        num = 0
+        for k in info:
+            for batch in range(len(info[k]["gt"])):
+                for i in range(len(info[k]["gt"][batch])):
+                    frm_gt = info[k]["gt"][batch][i]
+                    frm_pd = info[k]["pd"][batch][i]
+                    iou, n = self._calcu_iou(frm_gt, frm_pd)
+                    sum_iou += iou
+                    num += n
+        print("sum_iou | total num", sum_iou, num)
+        return sum_iou / num
+
+
+    def _check_DCN(self, rslt_path):
+        info = self.load(rslt_path)
+        dcn_num = 0
+        for k in info:
+            max_car_num = len(info[k]["gt"][0][0]) // 4
+            for batch in range(len(info[k]["gt"])):
+                for i in range(max_car_num):
+                    gt_f = (info[k]["gt"][batch][0][i*4] > 0)
+                    pd_f = (info[k]["pd"][batch][0][i*4] > 0)
+                    if gt_f != pd_f:
+                        dcn_num += 1
+        return dcn_num
