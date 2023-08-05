@@ -51,7 +51,20 @@ def draw_track(simu):
         visual_tra(sx, sy, ax1, ax2)
     plt.show()
 
-simu = np.load("./results/simulate-3-300.npy")
+def draw_section(simu):
+    fig = plt.figure()
+    for i in range(len(simu[0])//4):
+        sx = smooth(simu[:, i*4])
+        sy = smooth(simu[:, i*4 + 1])
+        if sy[0] > 17: #or sy[0] <10:
+            continue
+        plt.plot(sx)
+    plt.show()
+
+
+simu = np.load("./results/simulate-9-200.npy")
 draw_track(simu)
 # draw_frms(simu)
+
+# draw_section(simu)
 
