@@ -27,3 +27,12 @@
   - val
 
 
+## TODO:
+
+1. random.sample 没改 [done]
+2. compensation作为pretrain [done]
+3. frm_mark做position_embed
+4. relative position embed（net）
+5. 加长序列
+6. 去掉switch，在T5的answer模式下它学不到序列信息，会误导。车辆不会倒退
+
