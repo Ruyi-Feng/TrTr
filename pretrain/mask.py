@@ -126,8 +126,9 @@ class Mask():
         spans = self._gen_spans(del_len)
         n_spans = len(spans)
         n_possible_insert_poses = seq_len - sum(spans) - n_spans + 1
-        abs_insert_poses = sorted(random.choice(
-            range(n_possible_insert_poses), n_spans))
+        sample_method = random.sample if n_possible_insert_poses > n_spans else random.choices
+        abs_insert_poses = sorted(sample_method(
+            range(n_possible_insert_poses), k=n_spans))
         mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
         mask_scheme = self._random_add_one(mask_scheme)
         return self._mask(x.tolist(), mask_scheme)
