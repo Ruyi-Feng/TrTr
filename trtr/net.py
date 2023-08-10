@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from trtr.transformer import Transformer as Rltv
+from trtr.backbone import Transformer as Rltv
 
 
 class NrmlEmbedding(nn.Module):
