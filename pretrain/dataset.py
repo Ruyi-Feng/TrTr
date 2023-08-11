@@ -1,5 +1,5 @@
 import numpy as np
-from pretrain.mask import Mask
+from pretrain.trans import Mask
 from torch.utils.data import Dataset
 
 
@@ -9,7 +9,7 @@ class Dataset_Pretrain(Dataset):
                  max_car_num: int=40,
                  input_len: int=5,
                  pred_len: int=1):
-        self.trans = Mask(max_car_num=max_car_num)  # max_seq_len=max_seq_len
+        self.trans = Mask(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10
@@ -58,6 +58,7 @@ class Dataset_Pretrain(Dataset):
         return new_inter
 
     def _form_dataset(self, continue_car: set, trj_per_car: dict) -> np.array:
+        # 原本是把每辆车的轨迹横着粘贴起来
         total_data = []
         pad_num = self.max_car_num - len(continue_car)
         # print("pad_num", pad_num, "continues", len(continue_car))
@@ -75,7 +76,7 @@ class Dataset_Pretrain(Dataset):
             total_data = np.concatenate((total_data, np.zeros(tmp.shape)), axis=1)
         return total_data
 
-    def _trans_to_array(self, info: str) -> list:
+    def _trans_to_array(self, info: str) -> np.array:
         """
         把数据组织好，除了挖空的
         组织两个dict
@@ -86,8 +87,7 @@ class Dataset_Pretrain(Dataset):
         trj_per_car, car_per_frm = self._load(info)
         continue_car = self._intersection(car_per_frm)
         x = self._form_dataset(continue_car, trj_per_car)
-        x = self._pre_process(x)
-        return x[: self.input_len], x[self.input_len: self.input_len + self.pred_len]
+        return self._pre_process(x)
 
     def _pre_process(self, sec):
         """
@@ -115,8 +115,8 @@ class Dataset_Pretrain(Dataset):
         head, tail = self.train_idx[index][1], self.train_idx[index][2]
         self.f_data.seek(head)
         info = self.f_data.read(tail - head)
-        x, gt = self._trans_to_array(info)  # frame, id, x, y, w, h
-        enc, dec = self.trans.derve(x)  # 这个是用来随机挖空的
+        seq = self._trans_to_array(info)  # xywh xywh ... (standared)
+        enc, dec, gt = self.trans.derve(seq)  # for mask of compensation
         return enc, dec, gt
 
     def __len__(self):

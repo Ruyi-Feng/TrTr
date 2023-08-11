@@ -33,8 +33,9 @@ class RltvEmbedding(nn.Module):
 class Trtr(nn.Module):
     def __init__(self, config):
         super(Trtr, self).__init__()
+        dp = 0 if config.task == "pretrain" else 0.1
         net_cfg = {"d_model": config.d_model,
-                   "n_head": config.n_heads,
+                   "n_heads": config.n_heads,
                    "num_encoder_layers":config.e_layers,
                    "num_decoder_layers":config.d_layers,
                    "activation":config.activation,
@@ -47,7 +48,6 @@ class Trtr(nn.Module):
             self.batch_first = False
             Embedding = NrmlEmbedding
             Net = nn.Transformer
-        dp = 0 if config.task == "pretrain" else 0.1
         self.pred_len = config.pred_len
         self.enc_embeding = Embedding(config)
         self.dec_embeding = Embedding(config)

@@ -1,8 +1,7 @@
 from datetime import timedelta
 import numpy as np
 import os
-from pretrain.dataset_comp import Dataset_Pretrain
-from pretrain.utils import metric
+from pretrain.dataset import Dataset_Pretrain
 import time
 import torch
 from torch import optim
