@@ -63,7 +63,7 @@ class Dataset_Pretrain(Dataset):
         total_data = []
         pad_num = self.max_car_num - len(continue_car)
         # print("pad_num", pad_num, "continues", len(continue_car))
-        tmp = np.zeros((self.input_len + self.pred_len, 4))
+        tmp = np.zeros((self.input_len, 4))
         for car in continue_car:
             tmp = np.array(trj_per_car[car])[:, 2:]
             if len(total_data):

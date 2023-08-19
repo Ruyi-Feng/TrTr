@@ -135,7 +135,7 @@ class Mask(PrcsBase):
 
     def _pad_tail(self, x):
         gt_x = x[-self.pred_len:, :]
-        enc_x = x[:self.pred_len, :].tolist()
+        enc_x = x[:-self.pred_len, :].tolist()
         [enc_x.append(self._mask_token) for i in range(self.pred_len)]
         return np.array(enc_x), gt_x
 
