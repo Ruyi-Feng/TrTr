@@ -106,7 +106,7 @@ class Dataset_Pretrain(Dataset):
             sec[:, i * 4 + 1] = sec[:, i * 4 + 1] / self.LATI_SCALE
             sec[:, i * 4 + 2] = sec[:, i * 4 + 2] / self.SIZE_SCALE
             sec[:, i * 4 + 3] = sec[:, i * 4 + 3] / self.SIZE_SCALE
-        return sec
+        return sec[:self.input_len]
 
     def __getitem__(self, index: int):
         """
