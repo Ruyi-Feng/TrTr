@@ -11,7 +11,7 @@ class Transformer(nn.Module):
                  num_decoder_layers,
                  activation,
                  dropout,
-                 max_relative_position=2):
+                 max_relative_position=10):
         super(Transformer, self).__init__()
 
         # Encoder
@@ -40,6 +40,14 @@ class Transformer(nn.Module):
             ],
             norm_layer=nn.LayerNorm(d_model),
         )
+
+    def generate_square_subsequent_mask(self, sz: int):
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
 
     def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.encoder(x_enc, attn_mask=enc_self_mask)

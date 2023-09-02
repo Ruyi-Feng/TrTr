@@ -58,13 +58,14 @@ class Trtr(nn.Module):
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
         self.criterion = nn.MSELoss()
 
-    def forward(self, enc_x, dec_x, gt_x):
+    def forward(self, enc_x, dec_x, gt_x, if_msk=True):
         enc_token = self.enc_embeding(enc_x)
         dec_token = self.dec_embeding(dec_x)
+        tgt_msk = self.trtr.generate_square_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device) if if_msk else None
         if self.batch_first:
-            output = self.trtr(enc_token, dec_token).permute(0, 2, 1)
+            output = self.trtr(enc_token, dec_token, dec_self_mask=tgt_msk).permute(0, 2, 1)
         else:
-            output = self.trtr(enc_token.permute(1, 0, 2), dec_token.permute(1, 0, 2)).permute(1, 2, 0)
+            output = self.trtr(enc_token.permute(1, 0, 2), dec_token.permute(1, 0, 2), tgt_msk=tgt_msk).permute(1, 2, 0)
         outputs = self.d_reduction(output).permute(0, 2, 1)  # -> batch, seq_len, d_model
         outputs = outputs[:, -self.pred_len:, :]
         loss = self.criterion(outputs, gt_x)
