@@ -196,7 +196,7 @@ class Pad_tail(PrcsBase):
 
 class Mask(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
-                 msk_rate: float = 0.3,
+                 msk_rate: float = 0.05,
                  poisson_rate: int = 3,
                  max_span_len: int = 5,
                  max_car_num: int = 10,
@@ -373,3 +373,45 @@ class Predict(PrcsBase):
         else:
             enc_x = x_copy
         return enc_x, dec_x, gt
+
+
+class Selfregression(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        """
+        noise_rate:
+        ----------
+        float = 0.5
+        the input x is randomly select to add noise by noise_rate
+
+        msk_rate:
+        --------
+        float = 0.5
+        when add noise by randomly mask vehicles of one frame,
+        msk_rate percent of vehicles will be masked in one frame.
+        """
+        super(Selfregression, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        decoder only stucturte
+        with only decoder backbone
+        0123 input
+        1234 pred
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len-1, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
+        """
+        gt_x = copy.deepcopy(x[1:])
+        dec_x = copy.deepcopy(x[:-2])
+        enc_x = copy.deepcopy(x[:-2])
+        return enc_x, dec_x, gt_x
