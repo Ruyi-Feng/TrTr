@@ -59,7 +59,8 @@ class Decoderonly(nn.Module):
                  n_heads,
                  num_decoder_layers,
                  activation,
-                 dropout):
+                 dropout,
+                 num_encoder_layers=0):
         super(Decoderonly, self).__init__()
 
         # Decoder
