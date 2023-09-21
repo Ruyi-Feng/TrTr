@@ -37,7 +37,7 @@ class Trtr(nn.Module):
         super(Trtr, self).__init__()
         dp = 0 if config.task == "pretrain" else 0.1
         net_cfg = {"d_model": config.d_model,
-                   "n_heads": config.n_heads,
+                   "nhead": config.n_heads,
                    "num_encoder_layers":config.e_layers,
                    "num_decoder_layers":config.d_layers,
                    "activation":config.activation,
@@ -70,7 +70,7 @@ class Trtr(nn.Module):
         if self.batch_first:
             output = self.trtr(enc_token, dec_token, dec_self_mask=tgt_msk).permute(0, 2, 1)
         else:
-            output = self.trtr(enc_token.permute(1, 0, 2), dec_token.permute(1, 0, 2), tgt_msk=tgt_msk).permute(1, 2, 0)
+            output = self.trtr(enc_token.permute(1, 0, 2), dec_token.permute(1, 0, 2), tgt_mask=tgt_msk).permute(1, 2, 0)
         outputs = self.d_reduction(output).permute(0, 2, 1)  # -> batch, seq_len, d_model
         outputs = outputs[:, -gt_x.shape[1]:, :]
         loss = self.criterion(outputs, gt_x)

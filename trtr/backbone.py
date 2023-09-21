@@ -1,13 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import MultiHeadAttention
 import torch_npu
 
 
 class Transformer(nn.Module):
     def __init__(self, d_model,
-                 n_heads,
+                 nhead,
                  num_encoder_layers,
                  num_decoder_layers,
                  activation,
@@ -19,7 +18,7 @@ class Transformer(nn.Module):
         self.encoder = Encoder(
             [
                 EncoderLayer(
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
                     d_model,
                     dropout=dropout,
                     activation=activation
@@ -31,8 +30,8 @@ class Transformer(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayer(
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
                     d_model,
                     dropout=dropout,
                     activation=activation,
@@ -56,7 +55,7 @@ class Transformer(nn.Module):
 
 class Decoderonly(nn.Module):
     def __init__(self, d_model,
-                 n_heads,
+                 nhead,
                  num_decoder_layers,
                  activation,
                  dropout,
@@ -67,8 +66,8 @@ class Decoderonly(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayer(
-                    MultiHeadAttention(d_model, n_heads, dropout),
-                    MultiHeadAttention(d_model, n_heads, dropout),
+                    nn.MultiheadAttention(d_model, nhead, dropout),
+                    nn.MultiheadAttention(d_model, nhead, dropout),
                     d_model,
                     dropout=dropout,
                     activation=activation,
@@ -111,12 +110,12 @@ class RelativePosition(nn.Module):
 
 
 class MultiHeadAttentionLayer(nn.Module):
-    def __init__(self, d_model, n_heads, dropout, max_rltv_pos=2):
+    def __init__(self, d_model, nhead, dropout, max_rltv_pos=2):
         super().__init__()
-        assert d_model % n_heads == 0
+        assert d_model % nhead == 0
         self.d_model = d_model
-        self.n_heads = n_heads
-        self.head_dim = d_model // n_heads
+        self.nhead = nhead
+        self.head_dim = d_model // nhead
         self.max_relative_position = max_rltv_pos
 
         self.relative_position_k = RelativePosition(
@@ -145,17 +144,17 @@ class MultiHeadAttentionLayer(nn.Module):
         key = self.fc_k(key)
         value = self.fc_v(value)
 
-        r_q1 = query.view(batch_size, -1, self.n_heads,
+        r_q1 = query.view(batch_size, -1, self.nhead,
                           self.head_dim).permute(0, 2, 1, 3)
-        r_k1 = key.view(batch_size, -1, self.n_heads,
+        r_k1 = key.view(batch_size, -1, self.nhead,
                         self.head_dim).permute(0, 2, 1, 3)
         attn1 = torch.matmul(r_q1, r_k1.permute(0, 1, 3, 2))
 
         r_q2 = query.permute(1, 0, 2).contiguous().view(
-            len_q, batch_size*self.n_heads, self.head_dim)
+            len_q, batch_size*self.nhead, self.head_dim)
         r_k2 = self.relative_position_k(len_q, len_k)
         attn2 = torch.matmul(r_q2, r_k2.transpose(1, 2)).transpose(0, 1)
-        attn2 = attn2.contiguous().view(batch_size, self.n_heads, len_q, len_k)
+        attn2 = attn2.contiguous().view(batch_size, self.nhead, len_q, len_k)
         attn = (attn1 + attn2) / self.scale
 
         if attn_mask is not None:
@@ -164,15 +163,15 @@ class MultiHeadAttentionLayer(nn.Module):
         attn = self.dropout(torch.softmax(attn, dim=-1))
 
         # attn = [batch size, n heads, query len, key len]
-        r_v1 = value.view(batch_size, -1, self.n_heads,
+        r_v1 = value.view(batch_size, -1, self.nhead,
                           self.head_dim).permute(0, 2, 1, 3)
         weight1 = torch.matmul(attn, r_v1)
         r_v2 = self.relative_position_v(len_q, len_v)
         weight2 = attn.permute(2, 0, 1, 3).contiguous().view(
-            len_q, batch_size*self.n_heads, len_k)
+            len_q, batch_size*self.nhead, len_k)
         weight2 = torch.matmul(weight2, r_v2)
         weight2 = weight2.transpose(0, 1).contiguous().view(
-            batch_size, self.n_heads, len_q, self.head_dim)
+            batch_size, self.nhead, len_q, self.head_dim)
 
         x = weight1 + weight2
         # x = [batch size, n heads, query len, head dim]

@@ -412,6 +412,6 @@ class Selfregression(PrcsBase):
         gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
         """
         gt_x = copy.deepcopy(x[1:])
-        dec_x = copy.deepcopy(x[:-2])
-        enc_x = copy.deepcopy(x[:-2])
+        dec_x = copy.deepcopy(x[:-1])
+        enc_x = copy.deepcopy(x[:-1])
         return enc_x, dec_x, gt_x
