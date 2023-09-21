@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import MultiHeadAttention
 import torch_npu
 
 
@@ -53,6 +54,39 @@ class Transformer(nn.Module):
         enc_out = self.encoder(x_enc, attn_mask=enc_self_mask)
         return self.decoder(x_dec, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
 
+class Decoderonly(nn.Module):
+    def __init__(self, d_model,
+                 n_heads,
+                 num_decoder_layers,
+                 activation,
+                 dropout):
+        super(Decoderonly, self).__init__()
+
+        # Decoder
+        self.decoder = Decoder(
+            [
+                DecoderLayer(
+                    MultiHeadAttention(d_model, n_heads, dropout),
+                    MultiHeadAttention(d_model, n_heads, dropout),
+                    d_model,
+                    dropout=dropout,
+                    activation=activation,
+                )
+                for l in range(num_decoder_layers)
+            ],
+            norm_layer=nn.LayerNorm(d_model),
+        )
+
+    def generate_square_subsequent_mask(self, sz: int):
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
+    def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None):
+        return self.decoder(x_dec, None, x_mask=dec_self_mask)
 
 class RelativePosition(nn.Module):
     def __init__(self, num_units, max_relative_position):
@@ -260,6 +294,32 @@ class DecoderLayer(nn.Module):
         y = self.dropout(self.conv2(y).transpose(-1, 1))
 
         return self.norm3(x + y)
+
+class DecoderonlyLayer(nn.Module):
+    def __init__(self, self_attention, d_model, d_ff=None,
+                 dropout=0.1, activation="relu"):
+        super(DecoderonlyLayer, self).__init__()
+        d_ff = d_ff or 4 * d_model
+        self.self_attention = self_attention
+        self.conv1 = nn.Conv1d(in_channels=d_model,
+                               out_channels=d_ff, kernel_size=1)
+        self.conv2 = nn.Conv1d(
+            in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = F.relu if activation == "relu" else F.gelu
+
+    def forward(self, x, cross=None, x_mask=None, cross_mask=None):
+        x = x + self.dropout(self.self_attention(
+            x, x, x,
+            attn_mask=x_mask
+        )[0])
+        x = self.norm1(x)
+
+        y = self.dropout(self.activation(self.conv1(x.transpose(-1, 1))))
+        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        return self.norm2(x + y)
 
 
 class Decoder(nn.Module):

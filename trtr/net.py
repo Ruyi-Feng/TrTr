@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import torch_npu
 from trtr.backbone import Transformer as Rltv
+from trtr.backbone import Decoderonly as GPT
 
 
 class NrmlEmbedding(nn.Module):
@@ -15,7 +16,7 @@ class NrmlEmbedding(nn.Module):
 
     def forward(self, x):
         # x: batch, seq_len, c_in
-        return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data
+        return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, :x.shape[1], :]
 
 
 class RltvEmbedding(nn.Module):
@@ -41,14 +42,18 @@ class Trtr(nn.Module):
                    "num_decoder_layers":config.d_layers,
                    "activation":config.activation,
                    "dropout":dp}
-        if config.use_relative:
+        if config.model_type == 'rltv':
             self.batch_first = True
             Embedding = RltvEmbedding
             Net = Rltv
-        else:
+        elif config.model_type == 'nrml':
             self.batch_first = False
             Embedding = NrmlEmbedding
             Net = nn.Transformer
+        elif config.model_type == 'gpt':
+            self.batch_first = False
+            Embedding = NrmlEmbedding
+            Net = GPT
         self.pred_len = config.pred_len
         self.enc_embeding = Embedding(config)
         self.dec_embeding = Embedding(config)
@@ -67,6 +72,6 @@ class Trtr(nn.Module):
         else:
             output = self.trtr(enc_token.permute(1, 0, 2), dec_token.permute(1, 0, 2), tgt_msk=tgt_msk).permute(1, 2, 0)
         outputs = self.d_reduction(output).permute(0, 2, 1)  # -> batch, seq_len, d_model
-        outputs = outputs[:, -self.pred_len:, :]
+        outputs = outputs[:, -gt_x.shape[1]:, :]
         loss = self.criterion(outputs, gt_x)
         return outputs, loss
