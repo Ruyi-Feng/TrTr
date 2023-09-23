@@ -9,14 +9,19 @@ class NrmlEmbedding(nn.Module):
     def __init__(self, config):
         super(NrmlEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= '1.5.0' else 2
-        self._pos_embed = nn.Parameter(torch.rand(1, config.input_len, 1))  # 对于每个token的pos_embed是一样的
+        self._pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, 1))  # 对于每个token的pos_embed是一样的
+        self.share = config.shared_pos_embed
+        self.input_len = config.input_len
         # cov input x: [batch, seq_len, c_in]
         self._token_embed = nn.Conv1d(in_channels=(config.max_car_num*4), out_channels=config.d_model,
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
 
-    def forward(self, x):
+    def forward(self, x, dec=False):
         # x: batch, seq_len, c_in
-        return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, :x.shape[1], :]
+        if self.share or not dec:
+            return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, :x.shape[1], :]
+        else:
+            return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, self.input_len:self.input_len+x.shape[1], :]
 
 
 class RltvEmbedding(nn.Module):
