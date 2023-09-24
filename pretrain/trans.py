@@ -415,3 +415,34 @@ class Selfregression(PrcsBase):
         dec_x = copy.deepcopy(x[:-1])
         enc_x = copy.deepcopy(x[:-1])
         return enc_x, dec_x, gt_x
+
+class Histregression(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Histregression, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        using history trajectory regression
+        hist input in encoder
+        expected prediction input in decoder self-regression
+        gt indicate dec_x seq + 1
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len-pred_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
+        """
+        enc_end = self.input_len - self.pred_len
+        dec_start = enc_end
+        enc_x = copy.deepcopy(x[:enc_end])
+        dec_x = copy.deepcopy(x[dec_start:-1])
+        gt_x = copy.deepcopy(x[dec_start+1:])
+        return enc_x, dec_x, gt_x
