@@ -13,7 +13,7 @@ def load(local_rank, pth):
     return model
 
 def save(model, path):
-    torch.save(model.module.to('cpu').state_dict(), path)
+    torch.save(model.to('cpu').state_dict(), path)
 
 
 if __name__ == '__main__':
