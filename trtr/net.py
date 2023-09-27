@@ -9,7 +9,7 @@ class NrmlEmbedding(nn.Module):
     def __init__(self, config):
         super(NrmlEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= '1.5.0' else 2
-        self._pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, 1))  # 对于每个token的pos_embed是一样的
+        self._pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, config.d_model))  # 对于每个token的pos_embed是一样的
         self.share = config.shared_pos_embed
         self.input_len = config.input_len
         # cov input x: [batch, seq_len, c_in]
