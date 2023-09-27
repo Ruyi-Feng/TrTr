@@ -1,6 +1,6 @@
 import numpy as np
 from pretrain.trans import Mask
-from pretrain.trans import Selfregression
+from pretrain.trans import Histregression
 from torch.utils.data import Dataset
 import torch_npu
 
@@ -11,7 +11,7 @@ class Dataset_Pretrain(Dataset):
                  max_car_num: int=40,
                  input_len: int=5,
                  pred_len: int=1):
-        self.trans = Selfregression(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
+        self.trans = Histregression(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10
