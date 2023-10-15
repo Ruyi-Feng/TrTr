@@ -5,19 +5,19 @@ import torch.nn.functional as F
 
 class Transformer(nn.Module):
     def __init__(self, d_model,
-                 n_heads,
+                 nhead,
                  num_encoder_layers,
                  num_decoder_layers,
                  activation,
                  dropout,
-                 max_relative_position=2):
+                 max_relative_position=10):
         super(Transformer, self).__init__()
 
         # Encoder
         self.encoder = Encoder(
             [
                 EncoderLayer(
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
                     d_model,
                     dropout=dropout,
                     activation=activation
@@ -29,8 +29,8 @@ class Transformer(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayer(
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
-                    MultiHeadAttentionLayer(d_model, n_heads, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
+                    MultiHeadAttentionLayer(d_model, nhead, dropout, max_relative_position),
                     d_model,
                     dropout=dropout,
                     activation=activation,
@@ -40,10 +40,52 @@ class Transformer(nn.Module):
             norm_layer=nn.LayerNorm(d_model),
         )
 
+    def generate_square_subsequent_mask(self, sz: int):
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
     def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.encoder(x_enc, attn_mask=enc_self_mask)
         return self.decoder(x_dec, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
 
+class Decoderonly(nn.Module):
+    def __init__(self, d_model,
+                 nhead,
+                 num_decoder_layers,
+                 activation,
+                 dropout,
+                 num_encoder_layers=0):
+        super(Decoderonly, self).__init__()
+
+        # Decoder
+        self.decoder = Decoder(
+            [
+                DecoderLayer(
+                    nn.MultiheadAttention(d_model, nhead, dropout),
+                    nn.MultiheadAttention(d_model, nhead, dropout),
+                    d_model,
+                    dropout=dropout,
+                    activation=activation,
+                )
+                for l in range(num_decoder_layers)
+            ],
+            norm_layer=nn.LayerNorm(d_model),
+        )
+
+    def generate_square_subsequent_mask(self, sz: int):
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
+    def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None):
+        return self.decoder(x_dec, None, x_mask=dec_self_mask)
 
 class RelativePosition(nn.Module):
     def __init__(self, num_units, max_relative_position):
@@ -67,12 +109,12 @@ class RelativePosition(nn.Module):
 
 
 class MultiHeadAttentionLayer(nn.Module):
-    def __init__(self, d_model, n_heads, dropout, max_rltv_pos=2):
+    def __init__(self, d_model, nhead, dropout, max_rltv_pos=2):
         super().__init__()
-        assert d_model % n_heads == 0
+        assert d_model % nhead == 0
         self.d_model = d_model
-        self.n_heads = n_heads
-        self.head_dim = d_model // n_heads
+        self.nhead = nhead
+        self.head_dim = d_model // nhead
         self.max_relative_position = max_rltv_pos
 
         self.relative_position_k = RelativePosition(
@@ -101,17 +143,17 @@ class MultiHeadAttentionLayer(nn.Module):
         key = self.fc_k(key)
         value = self.fc_v(value)
 
-        r_q1 = query.view(batch_size, -1, self.n_heads,
+        r_q1 = query.view(batch_size, -1, self.nhead,
                           self.head_dim).permute(0, 2, 1, 3)
-        r_k1 = key.view(batch_size, -1, self.n_heads,
+        r_k1 = key.view(batch_size, -1, self.nhead,
                         self.head_dim).permute(0, 2, 1, 3)
         attn1 = torch.matmul(r_q1, r_k1.permute(0, 1, 3, 2))
 
         r_q2 = query.permute(1, 0, 2).contiguous().view(
-            len_q, batch_size*self.n_heads, self.head_dim)
+            len_q, batch_size*self.nhead, self.head_dim)
         r_k2 = self.relative_position_k(len_q, len_k)
         attn2 = torch.matmul(r_q2, r_k2.transpose(1, 2)).transpose(0, 1)
-        attn2 = attn2.contiguous().view(batch_size, self.n_heads, len_q, len_k)
+        attn2 = attn2.contiguous().view(batch_size, self.nhead, len_q, len_k)
         attn = (attn1 + attn2) / self.scale
 
         if attn_mask is not None:
@@ -120,15 +162,15 @@ class MultiHeadAttentionLayer(nn.Module):
         attn = self.dropout(torch.softmax(attn, dim=-1))
 
         # attn = [batch size, n heads, query len, key len]
-        r_v1 = value.view(batch_size, -1, self.n_heads,
+        r_v1 = value.view(batch_size, -1, self.nhead,
                           self.head_dim).permute(0, 2, 1, 3)
         weight1 = torch.matmul(attn, r_v1)
         r_v2 = self.relative_position_v(len_q, len_v)
         weight2 = attn.permute(2, 0, 1, 3).contiguous().view(
-            len_q, batch_size*self.n_heads, len_k)
+            len_q, batch_size*self.nhead, len_k)
         weight2 = torch.matmul(weight2, r_v2)
         weight2 = weight2.transpose(0, 1).contiguous().view(
-            batch_size, self.n_heads, len_q, self.head_dim)
+            batch_size, self.nhead, len_q, self.head_dim)
 
         x = weight1 + weight2
         # x = [batch size, n heads, query len, head dim]
@@ -251,6 +293,32 @@ class DecoderLayer(nn.Module):
         y = self.dropout(self.conv2(y).transpose(-1, 1))
 
         return self.norm3(x + y)
+
+class DecoderonlyLayer(nn.Module):
+    def __init__(self, self_attention, d_model, d_ff=None,
+                 dropout=0.1, activation="relu"):
+        super(DecoderonlyLayer, self).__init__()
+        d_ff = d_ff or 4 * d_model
+        self.self_attention = self_attention
+        self.conv1 = nn.Conv1d(in_channels=d_model,
+                               out_channels=d_ff, kernel_size=1)
+        self.conv2 = nn.Conv1d(
+            in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = F.relu if activation == "relu" else F.gelu
+
+    def forward(self, x, cross=None, x_mask=None, cross_mask=None):
+        x = x + self.dropout(self.self_attention(
+            x, x, x,
+            attn_mask=x_mask
+        )[0])
+        x = self.norm1(x)
+
+        y = self.dropout(self.activation(self.conv1(x.transpose(-1, 1))))
+        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        return self.norm2(x + y)
 
 
 class Decoder(nn.Module):
