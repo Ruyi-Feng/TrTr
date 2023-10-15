@@ -32,9 +32,9 @@ class Exp_Main:
             self.model = self._build_model()
 
     def _task_model(self):
-        model = Trtr(args).float().to(device)
+        model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.sepecific):
-            model.load_state_dict(torch.load(pth, map_location=torch.device('cpu')))
+            model.load_state_dict(torch.load(self.args.sepecific, map_location=torch.device('cpu')))
         return DDP(model, device_ids=[self.local_rank], output_device=self.local_rank, find_unused_parameters=True)
 
     def _build_model(self):
@@ -155,7 +155,8 @@ class Exp_Main:
                     output = output.detach().cpu().tolist()
                     gt_x = gt_x.detach().cpu().tolist()
                     enc_x = enc_x.detach().cpu().tolist()  # batch, seq_len, d_model
-                    result.update({i: {"gt": gt_x, "pd": output, "enc": enc_x}})
-                    if i > 60:
+                    dec_x = dec_x.detach().cpu().tolist()
+                    result.update({i: {"gt": gt_x, "pd": output, "enc": enc_x, "dec": dec_x}})
+                    if i > 5:
                         break
             return result
