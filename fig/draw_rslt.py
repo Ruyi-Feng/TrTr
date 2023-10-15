@@ -1,6 +1,7 @@
 import json
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def load(flnm) -> dict:
@@ -39,7 +40,7 @@ def scatter(points, img, scale, c):
 
 def draw_tracks(info):
     # draw enc
-    scale = 50
+    scale = 80
     img = np.zeros((10*scale, 200*scale, 3), np.uint8)
     img.fill(255)
     for k, v in info.items():
@@ -52,11 +53,33 @@ def draw_tracks(info):
             for i in range(len(v["gt"][batch])):
                 img = scatter(v["gt"][batch][i], img, scale, (0, 255, 0))
                 img = scatter(v["pd"][batch][i], img, scale, (0, 0, 255))
-    img = img[:, 40*scale:]
+    img = img[:, :40*scale]
     cv2.imshow('img', img)
     cv2.waitKey(0)
 
+def draw_time_space(seq_pd, seq_gt, seq_enc, seq_dec):
+    car_num = seq_pd.shape[1] // 4
+    for i in range(car_num):
+        plt.figure()
+        print("len of seq_pd", len(seq_pd))
+        print("len of seq_gt", len(seq_gt))
+        print("len of seq_enc", len(seq_enc))
+        plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_gt)), seq_gt[:, i * 4], c='g', label="gt")
+        plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_pd)), seq_pd[:, i * 4], c='r', label="pd")
+        plt.plot(np.arange(0, len(seq_enc)), seq_enc[:, i * 4], c='b')
+        plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_dec)), seq_dec[:, i * 4], c='y', label="dec")
+        plt.legend()
+        plt.show()
 
+def draw_traj(info):
+    # single predicted trajectory
+    for k, v in info.items():
+        for batch in range(len(v["pd"])):
+            seq_pd = np.array(v["pd"][batch])
+            seq_gt = np.array(v["gt"][batch])
+            seq_enc = np.array(v["enc"][batch])
+            seq_dec = np.array(v["dec"][batch])
+            draw_time_space(seq_pd, seq_gt, seq_enc, seq_dec)
 
-info = load("./results/rslt.json")
-draw_tracks(info)
+info = load("./results/dec-rslt-histreg-d512-in120-pd60-loss0.092.json")
+draw_traj(info)
