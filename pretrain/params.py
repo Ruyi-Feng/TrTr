@@ -15,6 +15,7 @@ def params():
     parser.add_argument('--max_car_num', type=int, default=10, help='max car num in a frame')
     parser.add_argument('--input_len', type=int, default=120, help='')  # 前input_len 个数据 如果是用hist-reg则input和pred不一样
     parser.add_argument('--pred_len', type=int, default=60, help='')
+    parser.add_argument('--shared_pos_embed', type=bool, default=False, help='')
 
     parser.add_argument('--d_model', type=int, default=1024, help='dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
