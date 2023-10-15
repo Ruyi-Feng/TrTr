@@ -26,7 +26,16 @@ class Exp_Main:
         self.local_rank = local_rank
         torch.cuda.set_device(local_rank)
         dist.init_process_group(backend='nccl', timeout=timedelta(days=1))
-        self.model = self._build_model()
+        if args.sepecific is not None:
+            self.model = self._task_model()
+        else:
+            self.model = self._build_model()
+
+    def _task_model(self):
+        model = Trtr(args).float().to(device)
+        if os.path.exists(self.args.sepecific):
+            model.load_state_dict(torch.load(pth, map_location=torch.device('cpu')))
+        return DDP(model, device_ids=[self.local_rank], output_device=self.local_rank, find_unused_parameters=True)
 
     def _build_model(self):
         model = Trtr(self.args).float().to(self.device)

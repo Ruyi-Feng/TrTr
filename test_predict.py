@@ -1,5 +1,5 @@
-from finetune.exp import Exp_Ft
-from finetune.params import params
+from pretrain.exp import Exp_Main
+from pretrain.params import params
 import os
 import json
 
@@ -11,10 +11,9 @@ if __name__ == '__main__':
     args = params()
     args.batch_size = 1
     args.is_train = False
-    args.task = "compensation"
     os.environ['NCCL_ASYNC_ERROR_HANDLING'] = '1'
     local_rank = int(os.environ['LOCAL_RANK'])
-    bartti = Exp_Ft(args, local_rank)
-    rslt = bartti.test()
+    model = Exp_Main(args, local_rank)
+    rslt = model.test()
     with open(rslt_path, "w") as f:
         rslt = json.dump(rslt, f)
