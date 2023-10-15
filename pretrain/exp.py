@@ -81,7 +81,7 @@ class Exp_Main:
 
     def train(self):
         _, train_loader = self._get_data()
-        vali_data, vali_loader = self._get_data()
+        # vali_data, vali_loader = self._get_data()
 
         time_now = time.time()
         train_steps = len(train_loader)
@@ -111,7 +111,7 @@ class Exp_Main:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                    # print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
                     iter_count = 0
                     time_now = time.time()
 
@@ -121,12 +121,12 @@ class Exp_Main:
 
             if dist.get_rank() == 0:
                 train_loss = np.average(train_loss)
-                vali_loss = self.vali(vali_data, vali_loader)
+                # vali_loss = self.vali(vali_data, vali_loader)
                 print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f}".format(
-                    epoch + 1, train_steps, train_loss, vali_loss))
+                    epoch + 1, train_steps, train_loss, 0.00))
 
                 # saving model
-                self._save_model(vali_loss, path + 'best.pth')
+                self._save_model(train_loss, path + 'best.pth')
             dist.barrier()
         if dist.get_rank() == 0:
             torch.save(self.model.module.state_dict(), path + 'last.pth')

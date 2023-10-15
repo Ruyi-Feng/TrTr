@@ -93,7 +93,7 @@ class PrcsBase():
         return random.random() < self.noise_rate
 
 
-class Mask(PrcsBase):
+class Pad_tail(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
                  msk_rate: float = 0.3,
                  poisson_rate: int = 3,
@@ -134,7 +134,7 @@ class Mask(PrcsBase):
 
     def _pad_tail(self, x):
         gt_x = x[-self.pred_len:, :]
-        enc_x = x[:self.pred_len, :].tolist()
+        enc_x = x[:-self.pred_len, :].tolist()
         [enc_x.append(self._mask_token) for i in range(self.pred_len)]
         return np.array(enc_x), gt_x
 
@@ -189,6 +189,87 @@ class Mask(PrcsBase):
             enc_x, gt_x = self._add_noise(x_copy)
         else:
             enc_x, gt_x = self._pad_tail(x_copy)
+        dec_x = copy.deepcopy(enc_x)
+        return enc_x, dec_x, gt_x
+
+
+class Mask(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.05,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        """
+        noise_rate:
+        ----------
+        float = 0.5
+        the input x is randomly select to add noise by noise_rate
+
+        msk_rate:
+        --------
+        float = 0.5
+        when add noise by randomly mask vehicles of one frame,
+        msk_rate percent of vehicles will be masked in one frame.
+        """
+        super(Mask, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                   max_span_len, max_car_num, input_len, pred_len)
+
+    def _mask(self, tokens: typing.List[list], mask_scheme: MaskScheme) -> typing.List[list]:
+        mask_scheme = dict(mask_scheme)
+        masked_tokens = []
+        current_span = 0
+        for i, t in enumerate(tokens):
+            if i in mask_scheme:
+                current_span = mask_scheme[i]
+            if current_span > 0:
+                current_span -= 1
+                masked_tokens.append(self._mask_token)
+                continue
+            masked_tokens.append(t)
+        return masked_tokens
+
+    def _add_noise(self, x) -> list:
+        """
+        x: frame sequence
+        - 选msk_rate的frm padding掉, padding内容成为gt
+        - msk 长度不足的在末尾补同样长度的pad
+
+        return
+        ------
+        enc_x, gt_x
+        """
+        seq_len = len(x)
+        msk_len = self._pocess_len(seq_len, self.msk_rate)
+        if msk_len < self._poisson_rate:
+            return x
+        spans = self._gen_spans(msk_len)
+        n_spans = len(spans)
+        n_possible_insert_poses = seq_len - sum(spans) - n_spans + 1
+        sample_method = random.sample if n_possible_insert_poses > n_spans else random.choices
+        abs_insert_poses = sorted(sample_method(
+            range(n_possible_insert_poses), k=n_spans))
+        mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
+        mask_scheme = self._random_add_one(mask_scheme)
+        enc_x = self._mask(x.tolist(), mask_scheme)
+        return np.array(enc_x)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len, c_in])
+        """
+        x_copy = copy.deepcopy(x)
+        gt_x = copy.deepcopy(x)
+        if self._if_noise():
+            enc_x = self._add_noise(x_copy)
+        else:
+            enc_x = x_copy
         dec_x = copy.deepcopy(enc_x)
         return enc_x, dec_x, gt_x
 
@@ -291,3 +372,76 @@ class Predict(PrcsBase):
         else:
             enc_x = x_copy
         return enc_x, dec_x, gt
+
+
+class Selfregression(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        """
+        noise_rate:
+        ----------
+        float = 0.5
+        the input x is randomly select to add noise by noise_rate
+
+        msk_rate:
+        --------
+        float = 0.5
+        when add noise by randomly mask vehicles of one frame,
+        msk_rate percent of vehicles will be masked in one frame.
+        """
+        super(Selfregression, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        decoder only stucturte
+        with only decoder backbone
+        0123 input
+        1234 pred
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len-1, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
+        """
+        gt_x = copy.deepcopy(x[1:])
+        dec_x = copy.deepcopy(x[:-1])
+        enc_x = copy.deepcopy(x[:-1])
+        return enc_x, dec_x, gt_x
+
+class Histregression(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Histregression, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        using history trajectory regression
+        hist input in encoder
+        expected prediction input in decoder self-regression
+        gt indicate dec_x seq + 1
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len-pred_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
+        """
+        enc_end = self.input_len - self.pred_len
+        dec_start = enc_end
+        enc_x = copy.deepcopy(x[:enc_end])
+        dec_x = copy.deepcopy(x[dec_start:-1])
+        gt_x = copy.deepcopy(x[dec_start+1:])
+        return enc_x, dec_x, gt_x

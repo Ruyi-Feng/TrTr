@@ -1,5 +1,6 @@
 import numpy as np
 from pretrain.trans import Mask
+from pretrain.trans import Histregression
 from torch.utils.data import Dataset
 
 
@@ -9,7 +10,7 @@ class Dataset_Pretrain(Dataset):
                  max_car_num: int=40,
                  input_len: int=5,
                  pred_len: int=1):
-        self.trans = Mask(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
+        self.trans = Histregression(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10
@@ -62,7 +63,7 @@ class Dataset_Pretrain(Dataset):
         total_data = []
         pad_num = self.max_car_num - len(continue_car)
         # print("pad_num", pad_num, "continues", len(continue_car))
-        tmp = np.zeros((self.input_len + self.pred_len, 4))
+        tmp = np.zeros((self.input_len, 4))
         for car in continue_car:
             tmp = np.array(trj_per_car[car])[:, 2:]
             if len(total_data):
@@ -105,7 +106,7 @@ class Dataset_Pretrain(Dataset):
             sec[:, i * 4 + 1] = sec[:, i * 4 + 1] / self.LATI_SCALE
             sec[:, i * 4 + 2] = sec[:, i * 4 + 2] / self.SIZE_SCALE
             sec[:, i * 4 + 3] = sec[:, i * 4 + 3] / self.SIZE_SCALE
-        return sec
+        return sec[:self.input_len]
 
     def __getitem__(self, index: int):
         """
