@@ -67,7 +67,7 @@ class Trtr(nn.Module):
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
         self.criterion = nn.MSELoss()
 
-    def forward(self, enc_x, dec_x, gt_x, if_msk=True):
+    def forward(self, enc_x, dec_x, gt_x, if_msk=False):
         enc_token = self.enc_embeding(enc_x, dec=False)
         dec_token = self.dec_embeding(dec_x, dec=True)
         tgt_msk = self.trtr.generate_square_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device) if if_msk else None
