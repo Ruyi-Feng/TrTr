@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-import torch_npu
+from adapter.device import torch_npu
 from trtr.backbone import Transformer as Rltv
 from trtr.backbone import Decoderonly as GPT
 

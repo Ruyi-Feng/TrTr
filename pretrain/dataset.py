@@ -2,7 +2,7 @@ import numpy as np
 from pretrain.trans import Mask
 from pretrain.trans import Histseq2seq
 from torch.utils.data import Dataset
-import torch_npu
+from adapter.device import torch_npu
 
 
 class Dataset_Pretrain(Dataset):

@@ -10,9 +10,11 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from trtr.net import Trtr
-import torch_npu
-from torch_npu.npu import amp
-from manas.aisample.dataset.mfile import copy_from_local
+from adapter.device import torch_npu
+from adapter.device import amp
+from adapter.device import copy_from_local
+from adapter.device import device_label
+from adapter.device import backend_label
 
 
 class Exp_Main:
@@ -24,11 +26,20 @@ class Exp_Main:
             self.args.save_path = self.args.save_path + 'pretrain/'
         self.best_score = None
         self.WARMUP = 4000
-        self.device = torch.device('npu', local_rank)
+        self.device = torch.device(device_label, local_rank)
         self.local_rank = local_rank
         torch_npu.npu.set_device(local_rank)
-        dist.init_process_group(backend='hccl', timeout=timedelta(days=1))  # init_method = "tcp://127.0.0.1:21210", rank=local_rank, world_size=8, 
-        self.model = self._build_model()
+        dist.init_process_group(backend=backend_label, timeout=timedelta(days=1))  # init_method = "tcp://127.0.0.1:21210", rank=local_rank, world_size=8, 
+        if args.sepecific is not None:
+            self.model = self._task_model()
+        else:
+            self.model = self._build_model()
+
+    def _task_model(self):
+        model = Trtr(self.args).float().to(self.device)
+        if os.path.exists(self.args.sepecific):
+            model.load_state_dict(torch.load(self.args.sepecific, map_location=torch.device('cpu')))
+        return DDP(model, device_ids=[self.local_rank], output_device=self.local_rank, find_unused_parameters=True)
 
     def _build_model(self):
         model = Trtr(self.args).float().to(self.device)
@@ -75,7 +86,10 @@ class Exp_Main:
                 enc_x = enc_x.float().to(self.device)
                 dec_x = dec_x.float().to(self.device)
                 gt_x = gt_x.float().to(self.device)
-                with amp.autocast():
+                if amp is not None:
+                    with amp.autocast():
+                        outputs, loss = self.model(enc_x, dec_x, gt_x)
+                else:
                     outputs, loss = self.model(enc_x, dec_x, gt_x)
                 total_loss.append(loss.item())
         total_loss = np.average(total_loss)
@@ -91,7 +105,10 @@ class Exp_Main:
         path = self.args.save_path + 'checkpoint_'
 
         model_optim, scheduler = self._select_optimizer()
-        scaler = amp.GradScaler()
+        if amp is not None:
+            scaler = amp.GradScaler()
+        else:
+            scaler = None
 
         for epoch in range(self.args.train_epochs):
             train_loader.sampler.set_epoch(epoch)
@@ -108,7 +125,10 @@ class Exp_Main:
                 dec_x = dec_x.float().to(self.device)
                 gt_x = gt_x.float().to(self.device)
 
-                with amp.autocast():
+                if amp is not None:
+                    with amp.autocast():
+                        _, loss = self.model(enc_x, dec_x, gt_x)
+                else:
                     _, loss = self.model(enc_x, dec_x, gt_x)
                 train_loss.append(loss.item())
 
@@ -120,9 +140,13 @@ class Exp_Main:
                     iter_count = 0
                     time_now = time.time()
 
-                scaler.scale(loss).backward()
-                scaler.step(model_optim)
-                scaler.update()
+                if scaler is not None:
+                    scaler.scale(loss).backward()
+                    scaler.step(model_optim)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    model_optim.step()
                 scheduler.step()
 
             if dist.get_rank() == 0:
@@ -133,13 +157,15 @@ class Exp_Main:
 
                 # saving model
                 self._save_model(train_loss, path + 'best.pth')
-                copy_from_local(path + 'best.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
+                if torch_npu is not None:
+                    copy_from_local(path + 'best.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
             dist.barrier()
         if dist.get_rank() == 0:
             torch.save(self.model.module.state_dict(), path + 'last.pth')
             print("=============success save last checkpoints============")
-            copy_from_local(path + 'last.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
-            print("===========finish copy last checkpoints============")
+            if torch_npu is not None:
+                copy_from_local(path + 'last.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
+                print("===========finish copy last checkpoints============")
 #         print("rank_number", dist.get_rank())
         dist.barrier()
         dist.destroy_process_group()

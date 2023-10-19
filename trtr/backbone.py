@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_npu
+from adapter.device import torch_npu
 
 
 class Transformer(nn.Module):
@@ -104,8 +104,12 @@ class RelativePosition(nn.Module):
         distance_mat_clipped = torch.clamp(
             distance_mat, -self.max_relative_position, self.max_relative_position)
         final_mat = distance_mat_clipped + self.max_relative_position
-        final_mat = torch.LongTensor(final_mat).npu()
-        embeddings = self.embeddings_table[final_mat].npu()
+        if torch_npu is not None:
+            final_mat = torch.LongTensor(final_mat).npu()
+            embeddings = self.embeddings_table[final_mat].npu()
+        else:
+            final_mat = torch.LongTensor(final_mat).cuda()
+            embeddings = self.embeddings_table[final_mat].cuda()
         return embeddings
 
 
