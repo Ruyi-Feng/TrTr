@@ -85,6 +85,12 @@ class Decoderonly(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
+    def generate_perfix_subsequent_mask(self, sz: int):
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        pass
+
     def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None):
         return self.decoder(x_dec, None, x_mask=dec_self_mask)
 
