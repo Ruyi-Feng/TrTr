@@ -10,6 +10,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from trtr.net import Trtr
+from adaptor import amp
 import torch_npu
 from torch_npu.npu import amp
 from manas.aisample.dataset.mfile import copy_from_local
