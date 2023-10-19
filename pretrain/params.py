@@ -1,9 +1,13 @@
 import argparse
+import yaml
 
 def params():
     parser = argparse.ArgumentParser(description='transformer parameters')
     parser.add_argument('--task', type=str, default='pretrain', help='pretrain or sepecific finetune tasks')
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
+    parser.add_argument('--used_yml', type=str, defult=None, help='location of used yml file')
+    parser.add_argument('--architecture', type=str, default='histseq2seq', help='architecture of the task')
+    parser.add_argument('--sepecific', type=str, default=None, help='location of sepecific model checkpoints')
     parser.add_argument('--index_path', type=str, default='./data/train/index.bin')
     parser.add_argument('--data_path', type=str, default='./data/train/data.bin')
 
@@ -16,6 +20,7 @@ def params():
     parser.add_argument('--input_len', type=int, default=120, help='')  # 前input_len 个数据 如果是用hist-reg则input和pred不一样
     parser.add_argument('--pred_len', type=int, default=60, help='')
     parser.add_argument('--shared_pos_embed', type=bool, default=False, help='')
+    parser.add_argument('--dropout', type=float, default=0)
 
     parser.add_argument('--d_model', type=int, default=1024, help='dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
@@ -27,5 +32,10 @@ def params():
     parser.add_argument('--lradj', default='type1')
     args = parser.parse_args()
 
+    if args.used_yml is not None:
+        with open(args.used_yml, 'r') as f:
+            settings = yaml.load(f, Loader=yaml.FullLoader)
+        for k, v in settings.items():
+            setattr(args, k, v)
     return args
 

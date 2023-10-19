@@ -1,17 +1,28 @@
 import numpy as np
 from pretrain.trans import Mask
-from pretrain.trans import Histseq2seq
+from pretrain.trans import Histseq2seq, Histregression, Selfregression, Predict, Pad_tail, Mask
 from torch.utils.data import Dataset
 from adapter.device import torch_npu
 
+
+data_factory = {
+    "histseq2seq": Histseq2seq,
+    "histregression": Histregression,
+    "selfregression": Selfregression,
+    "predict": Predict,
+    "mask": Mask,
+    "pad_tail": Pad_tail,
+}
 
 class Dataset_Pretrain(Dataset):
     def __init__(self, index_path: str=".\\data\\index.bin",
                  data_path:str=".\\data\\data.bin",
                  max_car_num: int=40,
                  input_len: int=5,
-                 pred_len: int=1):
-        self.trans = Histseq2seq(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
+                 pred_len: int=1,
+                 architecture: str="histseq2seq"):
+        Data_formate = data_factory[architecture]
+        self.trans = Data_formate(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10

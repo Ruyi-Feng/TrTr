@@ -38,9 +38,19 @@ class RltvEmbedding(nn.Module):
 
 
 class Trtr(nn.Module):
+    net_factory = {
+        "histregression": [False, nn.Transformer, 'nrml'],
+        "selfregression": [False, GPT, 'nrml'],
+        "histseq2seq": [False, nn.Transformer, None],
+        "predict": [False, nn.Transformer, None],
+        "mask": [False, nn.Transformer, None],
+        "pad_tail": [False, nn.Transformer, None],
+        "perfix": [False, GPT, 'perfix'],
+    }
+
     def __init__(self, config):
         super(Trtr, self).__init__()
-        dp = 0 if config.task == "pretrain" else 0.1
+        dp = config.dropout
         net_cfg = {"d_model": config.d_model,
                    "nhead": config.n_heads,
                    "num_encoder_layers":config.e_layers,
@@ -51,14 +61,10 @@ class Trtr(nn.Module):
             self.batch_first = True
             Embedding = RltvEmbedding
             Net = Rltv
+            self.msk_type = net_factory[self.config.architecture][2]
         elif config.model_type == 'nrml':
-            self.batch_first = False
+            self.batch_first, Net, self.msk_type = net_factory[self.config.architecture]
             Embedding = NrmlEmbedding
-            Net = nn.Transformer
-        elif config.model_type == 'gpt':
-            self.batch_first = False
-            Embedding = NrmlEmbedding
-            Net = GPT
         self.pred_len = config.pred_len
         self.enc_embeding = Embedding(config)
         self.dec_embeding = Embedding(config)
@@ -68,10 +74,15 @@ class Trtr(nn.Module):
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
         self.criterion = nn.MSELoss()
 
-    def forward(self, enc_x, dec_x, gt_x, if_msk=False):
+    def forward(self, enc_x, dec_x, gt_x):
         enc_token = self.enc_embeding(enc_x, dec=False)
         dec_token = self.dec_embeding(dec_x, dec=True)
-        tgt_msk = self.trtr.generate_square_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device) if if_msk else None
+        if self.msk_type == "nrml":
+            tgt_msk = self.trtr.generate_square_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device)
+        elif self.msk_type == "perfix":
+            tgt_msk = self.trtr.generate_perfix_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device) ## ABSENT
+        else:
+            tgt_msk = None
         if self.batch_first:
             output = self.trtr(enc_token, dec_token, dec_self_mask=tgt_msk).permute(0, 2, 1)
         else:
