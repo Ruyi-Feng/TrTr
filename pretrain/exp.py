@@ -25,10 +25,13 @@ class Exp_Main:
         else:
             self.args.save_path = self.args.save_path + 'pretrain/'
         self.best_score = None
-        self.WARMUP = 4000
+        self.WARMUP = args.warmup_steps
         self.device = torch.device(device_label, local_rank)
         self.local_rank = local_rank
-        torch_npu.npu.set_device(local_rank)
+        if torch_npu is not None:
+            torch_npu.npu.set_device(local_rank)
+        else:
+            torch.cuda.set_device(local_rank)
         dist.init_process_group(backend=backend_label, timeout=timedelta(days=1))  # init_method = "tcp://127.0.0.1:21210", rank=local_rank, world_size=8, 
         if args.sepecific is not None:
             self.model = self._task_model()

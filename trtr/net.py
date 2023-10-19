@@ -63,7 +63,7 @@ class Trtr(nn.Module):
             Net = Rltv
             self.msk_type = net_factory[self.config.architecture][2]
         elif config.model_type == 'nrml':
-            self.batch_first, Net, self.msk_type = net_factory[self.config.architecture]
+            self.batch_first, Net, self.msk_type = self.net_factory[config.architecture]
             Embedding = NrmlEmbedding
         self.pred_len = config.pred_len
         self.enc_embeding = Embedding(config)
