@@ -239,7 +239,7 @@ class Mask(PrcsBase):
 
         return
         ------
-        enc_x, gt_x
+        enc_x
         """
         seq_len = len(x)
         msk_len = self._pocess_len(seq_len, self.msk_rate)
@@ -476,5 +476,148 @@ class Histseq2seq(PrcsBase):
         enc_x = copy.deepcopy(x[:enc_end])
         dec_x = np.zeros_like(x[dec_start:])
         gt_x = copy.deepcopy(x[dec_start:])
+        return enc_x, dec_x, gt_x
+
+
+class Perfix(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        """
+        noise_rate:
+        ----------
+        float = 0.5
+        the input x is randomly select to add noise by noise_rate
+
+        msk_rate:
+        --------
+        float = 0.5
+        when add noise by randomly mask vehicles of one frame,
+        msk_rate percent of vehicles will be masked in one frame.
+        """
+        super(Perfix, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        decoder only stucturte
+        with only decoder backbone
+        0123 input
+        1234 pred
+
+        return
+        ------
+        dec_x: np.array -> torch(size=[batch, pred_len-1, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len-1, c_in])
+        """
+        gt_x = copy.deepcopy(x[1:])
+        dec_x = copy.deepcopy(x[:-1])
+        enc_x = copy.deepcopy(x[:-1])
+        return enc_x, dec_x, gt_x
+
+class Histlabel(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Histlabel, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        using history trajectory regression
+        hist input in encoder
+        half of the decodwer is as zeros like vector and half is labeled
+        gt indicate zeros like sequence
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, (input_len-pred_len)/2, c_in])
+        dec_x: np.array -> torch(size=[batch, pred_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len, c_in])
+        """
+        enc_end = (self.input_len - self.pred_len) / 2
+        dec_start = enc_end
+        label_end = self.input_len - self.pred_len
+        enc_x = copy.deepcopy(x[:enc_end])
+        dec_x = copy.deepcopy(x[dec_start:])
+        dec_x[label_end:] = 0
+        gt_x = copy.deepcopy(x[label_end:])
+        return enc_x, dec_x, gt_x
+
+class Mae(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Mae, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def _mask(self, tokens: typing.List[list], mask_scheme: MaskScheme) -> typing.List[list]:
+        mask_scheme = dict(mask_scheme)
+        masked_tokens = []
+        token_idx = []
+        current_span = 0
+        for i, t in enumerate(tokens):
+            if i in mask_scheme:
+                current_span = mask_scheme[i]
+            if current_span > 0:
+                current_span -= 1
+                continue
+            masked_tokens.append(t)
+            token_idx.append(i)
+        return masked_tokens, token_idx
+
+    def _gen_mask(self, x) -> list:
+        """
+        x: frame sequence
+        - 选msk_rate的frm 删除掉,记录保留的位置方便复原
+
+        return
+        ------
+        enc_x, dec_x
+        """
+        seq_len = len(x)
+        msk_len = int(seq_len * self.msk_rate)
+        if msk_len < self._poisson_rate:
+            return x
+        spans = self._gen_spans(msk_len)
+        n_spans = len(spans)
+        n_possible_insert_poses = seq_len - sum(spans) - n_spans + 1
+        sample_method = random.sample if n_possible_insert_poses > n_spans else random.choices
+        abs_insert_poses = sorted(sample_method(
+            range(n_possible_insert_poses), k=n_spans))
+        mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
+        mask_scheme = self._random_add_one(mask_scheme)
+        enc_x, dec_x = self._mask(x.tolist(), mask_scheme)
+        return np.array(enc_x), np.array(dec_x)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        enc-dec but without cross-attention
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len * (1 - mask_rate), c_in])
+        dec_x: np.array -> torch(size=[batch, input_len * (1 - mask_rate), c_in])  是enc_x被去掉mask后的index
+        gt_x: np.array -> torch(size=[batch, input_len, c_in])
+        """
+        x_copy = copy.deepcopy(x)
+        gt_x = copy.deepcopy(x)
+        enc_x, dec_x = self._gen_mask(x_copy)
+        # 需要注意一下enc_x的长度问题
         return enc_x, dec_x, gt_x
 
