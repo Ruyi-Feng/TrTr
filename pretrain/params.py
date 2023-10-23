@@ -7,6 +7,7 @@ def params():
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
     parser.add_argument('--used_yml', type=str, default=None, help='location of used yml file')
     parser.add_argument('--architecture', type=str, default='histseq2seq', help='architecture of the task')
+    parser.add_argument('--data_form', type=str, default='flatten', help='flatten: xywh xywh ..., stack: frm car_id xywh ...')
     parser.add_argument('--sepecific', type=str, default=None, help='location of sepecific model checkpoints')
     parser.add_argument('--index_path', type=str, default='./data/train/index.bin')
     parser.add_argument('--data_path', type=str, default='./data/train/data.bin')

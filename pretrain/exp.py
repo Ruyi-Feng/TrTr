@@ -1,7 +1,7 @@
 from datetime import timedelta
 import numpy as np
 import os
-from pretrain.dataset import Dataset_Pretrain
+from pretrain.dataset import Dataset_flatten, Dataset_stack
 import time
 import torch
 from torch import optim
@@ -18,6 +18,12 @@ from adapter.device import backend_label
 
 
 class Exp_Main:
+
+    dataset_factory = {
+        "flatten": Dataset_flatten,
+        "stack": Dataset_stack,
+    }
+
     def __init__(self, args, local_rank=-1):
         self.args = args
         if self.args.task != "pretrain":
@@ -54,7 +60,8 @@ class Exp_Main:
 
     def _get_data(self):
         batch_sz = self.args.batch_size
-        data_set = Dataset_Pretrain(index_path=self.args.index_path,
+        Dataset_pretrain = self.dataset_factory[self.args.data_form]
+        data_set = Dataset_pretrain(index_path=self.args.index_path,
                                     data_path=self.args.data_path,
                                     max_car_num=self.args.max_car_num,
                                     input_len=self.args.input_len,
