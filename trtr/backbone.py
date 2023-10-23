@@ -479,4 +479,4 @@ class MAE(nn.Module):
         latent, mask, ids_restore = self.forward_encoder(enc_x, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)
         loss = self.forward_loss(gt_x, pred, mask)
-        return loss, pred, mask
+        return pred, loss
