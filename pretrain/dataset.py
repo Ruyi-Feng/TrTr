@@ -1,6 +1,6 @@
 import numpy as np
 from pretrain.trans import Mask
-from pretrain.trans import Histseq2seq, Histregression, Selfregression, Predict, Pad_tail, Mask
+from pretrain.trans import Histseq2seq, Histregression, Selfregression, Predict, Pad_tail, Mask, Perfix, Histlabel, Mae
 from torch.utils.data import Dataset
 from adapter.device import torch_npu
 
@@ -12,6 +12,9 @@ data_factory = {
     "predict": Predict,
     "mask": Mask,
     "pad_tail": Pad_tail,
+    "perfix": Perfix,
+    "histlabel": Histlabel,
+    "mae": Mae,
 }
 
 class Dataset_Pretrain(Dataset):
