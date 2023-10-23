@@ -5,7 +5,6 @@ train_epochs: 100
 batch_size: 1024
 input_len: 120
 pred_len: 60
-shared_pos_embed: false
 d_model: 512
 nhead: 8
 e_layers: 6

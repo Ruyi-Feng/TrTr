@@ -18,13 +18,14 @@ def params():
     parser.add_argument('--batch_size', type=int, default=1024, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
     parser.add_argument('--max_car_num', type=int, default=10, help='max car num in a frame')
+    parser.add_argument('--max_relative_position', type=int, default=10, help='max relative position')
     parser.add_argument('--input_len', type=int, default=120, help='')  # 前input_len 个数据 如果是用hist-reg则input和pred不一样
     parser.add_argument('--pred_len', type=int, default=60, help='')
-    parser.add_argument('--shared_pos_embed', type=bool, default=False, help='')
     parser.add_argument('--dropout', type=float, default=0)
     parser.add_argument('--warmup_steps', type=int, default=400)
 
     parser.add_argument('--d_model', type=int, default=1024, help='dimension of model')
+    parser.add_argument('--c_in', type=int, default=6, help='input dimension')
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--e_layers', type=int, default=6, help='num of encoder layers')
     parser.add_argument('--d_layers', type=int, default=6, help='num of decoder layers')
@@ -39,5 +40,9 @@ def params():
             settings = yaml.load(f, Loader=yaml.FullLoader)
         for k, v in settings.items():
             setattr(args, k, v)
+    if data_form == 'stack':
+        args.c_in = 6
+    elif data_form == 'flatten':
+        args.c_in = 4 * args.max_car_num
     return args
 
