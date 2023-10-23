@@ -416,6 +416,7 @@ class Selfregression(PrcsBase):
         enc_x = copy.deepcopy(x[:-1])
         return enc_x, dec_x, gt_x
 
+
 class Histregression(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
                  msk_rate: float = 0.3,
@@ -446,6 +447,7 @@ class Histregression(PrcsBase):
         dec_x = copy.deepcopy(x[dec_start:-1])
         gt_x = copy.deepcopy(x[dec_start+1:])
         return enc_x, dec_x, gt_x
+
 
 class Histseq2seq(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
@@ -520,6 +522,7 @@ class Perfix(PrcsBase):
         enc_x = copy.deepcopy(x[:-1])
         return enc_x, dec_x, gt_x
 
+
 class Histlabel(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
                  msk_rate: float = 0.3,
@@ -554,9 +557,10 @@ class Histlabel(PrcsBase):
         gt_x = copy.deepcopy(x[label_end:])
         return enc_x, dec_x, gt_x
 
+
 class Mae(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
-                 msk_rate: float = 0.3,
+                 msk_rate: float = 0.75,
                  poisson_rate: int = 3,
                  max_span_len: int = 5,
                  max_car_num: int = 10,
