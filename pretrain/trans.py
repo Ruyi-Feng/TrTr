@@ -569,45 +569,6 @@ class Mae(PrcsBase):
         super(Mae, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
 
-    def _mask(self, tokens: typing.List[list], mask_scheme: MaskScheme) -> typing.List[list]:
-        mask_scheme = dict(mask_scheme)
-        masked_tokens = []
-        token_idx = []
-        current_span = 0
-        for i, t in enumerate(tokens):
-            if i in mask_scheme:
-                current_span = mask_scheme[i]
-            if current_span > 0:
-                current_span -= 1
-                continue
-            masked_tokens.append(t)
-            token_idx.append(i)
-        return masked_tokens, token_idx
-
-    def _gen_mask(self, x) -> list:
-        """
-        x: frame sequence
-        - 选msk_rate的frm 删除掉,记录保留的位置方便复原
-
-        return
-        ------
-        enc_x, dec_x
-        """
-        seq_len = len(x)
-        msk_len = int(seq_len * self.msk_rate)
-        if msk_len < self._poisson_rate:
-            return x
-        spans = self._gen_spans(msk_len)
-        n_spans = len(spans)
-        n_possible_insert_poses = seq_len - sum(spans) - n_spans + 1
-        sample_method = random.sample if n_possible_insert_poses > n_spans else random.choices
-        abs_insert_poses = sorted(sample_method(
-            range(n_possible_insert_poses), k=n_spans))
-        mask_scheme = self._distribute_insert_poses(abs_insert_poses, spans)
-        mask_scheme = self._random_add_one(mask_scheme)
-        enc_x, dec_x = self._mask(x.tolist(), mask_scheme)
-        return np.array(enc_x), np.array(dec_x)
-
     def derve(self, x):
         """
         x: x, y, w, h
@@ -615,13 +576,8 @@ class Mae(PrcsBase):
 
         return
         ------
-        enc_x: np.array -> torch(size=[batch, input_len * (1 - mask_rate), c_in])
-        dec_x: np.array -> torch(size=[batch, input_len * (1 - mask_rate), c_in])  是enc_x被去掉mask后的index
-        gt_x: np.array -> torch(size=[batch, input_len, c_in])
+        all gt x
+        mask in network
         """
-        x_copy = copy.deepcopy(x)
-        gt_x = copy.deepcopy(x)
-        enc_x, dec_x = self._gen_mask(x_copy)
-        # 需要注意一下enc_x的长度问题
-        return enc_x, dec_x, gt_x
+        return None, None, copy.deepcopy(x)
 

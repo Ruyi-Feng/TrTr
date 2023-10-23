@@ -9,7 +9,7 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
-from trtr.net import Trtr
+from trtr.net import Trtr, MAE
 from adapter.device import torch_npu
 from adapter.device import amp
 from adapter.device import copy_from_local
@@ -45,13 +45,19 @@ class Exp_Main:
             self.model = self._build_model()
 
     def _task_model(self):
-        model = Trtr(self.args).float().to(self.device)
+        if self.args.architecture == 'mae':
+            model = MAE(self.args).float().to(self.device)
+        else:
+            model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.sepecific):
             model.load_state_dict(torch.load(self.args.sepecific, map_location=torch.device('cpu')))
         return DDP(model, device_ids=[self.local_rank], output_device=self.local_rank, find_unused_parameters=True)
 
     def _build_model(self):
-        model = Trtr(self.args).float().to(self.device)
+        if self.args.architecture == 'mae':
+            model = MAE(self.args).float().to(self.device)
+        else:
+            model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.save_path + 'checkpoint_best.pth'):
             model.load_state_dict(torch.load(self.args.save_path + 'checkpoint_best.pth', map_location=torch.device('cpu')))
         elif os.path.exists(self.args.save_path + 'checkpoint_last.pth'):
