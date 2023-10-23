@@ -3,6 +3,7 @@ import torch
 from adapter.device import torch_npu
 from trtr.backbone import Transformer as Rltv
 from trtr.backbone import Decoderonly as GPT
+from trtr.backbone import MAE
 
 
 class NrmlEmbedding(nn.Module):
@@ -10,18 +11,14 @@ class NrmlEmbedding(nn.Module):
         super(NrmlEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         self._pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, config.d_model))  # 对于每个token的pos_embed是一样的
-        self.share = config.shared_pos_embed
         self.input_len = config.input_len
         # cov input x: [batch, seq_len, c_in]
-        self._token_embed = nn.Conv1d(in_channels=(config.max_car_num*4), out_channels=config.d_model,
+        self._token_embed = nn.Conv1d(in_channels=(config.c_in), out_channels=config.d_model,
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
 
-    def forward(self, x, dec=False):
+    def forward(self, x):
         # x: batch, seq_len, c_in
-        if self.share or not dec:
-            return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, :x.shape[1], :]
-        else:
-            return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, self.input_len:self.input_len+x.shape[1], :]
+        return self._token_embed(x.permute(0, 2, 1)).permute(0, 2, 1) + self._pos_embed.data[:, :x.shape[1], :]
 
 
 class RltvEmbedding(nn.Module):
@@ -29,7 +26,7 @@ class RltvEmbedding(nn.Module):
         super(RltvEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         # cov input x: [batch, seq_len, c_in]
-        self._token_embed = nn.Conv1d(in_channels=(config.max_car_num*4), out_channels=config.d_model,
+        self._token_embed = nn.Conv1d(in_channels=(config.c_in), out_channels=config.d_model,
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
 
     def forward(self, x):
@@ -46,6 +43,7 @@ class Trtr(nn.Module):
         "mask": [False, nn.Transformer, None],
         "pad_tail": [False, nn.Transformer, None],
         "perfix": [False, GPT, 'perfix'],
+        "histlabel": [False, nn.Transformer, None],
     }
 
     def __init__(self, config):
@@ -61,6 +59,7 @@ class Trtr(nn.Module):
             self.batch_first = True
             Embedding = RltvEmbedding
             Net = Rltv
+            net_cfg.setdefault("max_relative_position", config.max_relative_position)
             self.msk_type = net_factory[self.config.architecture][2]
         elif config.model_type == 'nrml':
             self.batch_first, Net, self.msk_type = self.net_factory[config.architecture]
@@ -70,13 +69,13 @@ class Trtr(nn.Module):
         self.dec_embeding = Embedding(config)
         self.trtr = Net(**net_cfg)
         padding = 1 if torch.__version__ >= '1.5.0' else 2
-        self.d_reduction = nn.Conv1d(in_channels=config.d_model, out_channels=(config.max_car_num*4),
+        self.d_reduction = nn.Conv1d(in_channels=config.d_model, out_channels=(config.c_in),
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
         self.criterion = nn.MSELoss()
 
     def forward(self, enc_x, dec_x, gt_x):
-        enc_token = self.enc_embeding(enc_x, dec=False)
-        dec_token = self.dec_embeding(dec_x, dec=True)
+        enc_token = self.enc_embeding(enc_x)
+        dec_token = self.dec_embeding(dec_x)
         if self.msk_type == "nrml":
             tgt_msk = self.trtr.generate_square_subsequent_mask(sz=dec_token.size(1)).to(enc_token.device)
         elif self.msk_type == "perfix":
