@@ -1,11 +1,11 @@
 task: pretrain
 is_train: true
-architecture: histseq2seq
-train_epochs: 100
-batch_size: 1024
-input_len: 120
+architecture: selfregression
+train_epochs: 10
+batch_size: 4
+input_len: 60
 pred_len: 60
-d_model: 512
+d_model: 128
 nhead: 8
 e_layers: 6
 d_layers: 6
