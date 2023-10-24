@@ -563,7 +563,7 @@ class Histlabel(PrcsBase):
         dec_x: np.array -> torch(size=[batch, pred_len, c_in])
         gt_x : np.array -> torch(size=[batch, pred_len, c_in])
         """
-        enc_end = (self.input_len - self.pred_len) / 2
+        enc_end = int((self.input_len - self.pred_len) / 2)
         dec_start = enc_end
         label_end = self.input_len - self.pred_len
         enc_x = copy.deepcopy(x[:enc_end])
@@ -597,5 +597,5 @@ class Mae(PrcsBase):
         all gt x
         mask in network
         """
-        return None, None, copy.deepcopy(x)
+        return x, x, copy.deepcopy(x)
 

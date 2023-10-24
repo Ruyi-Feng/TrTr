@@ -60,7 +60,7 @@ class Trtr(nn.Module):
             Embedding = RltvEmbedding
             Net = Rltv
             net_cfg.setdefault("max_relative_position", config.max_relative_position)
-            self.msk_type = net_factory[self.config.architecture][2]
+            self.msk_type = self.net_factory[config.architecture][2]
         elif config.pos_emb == 'nrml':
             self.batch_first, Net, self.msk_type = self.net_factory[config.architecture]
             Embedding = NrmlEmbedding

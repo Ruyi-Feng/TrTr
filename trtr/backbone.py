@@ -397,6 +397,7 @@ class MAE(nn.Module):
             ],
             norm_layer=nn.LayerNorm(config.d_model),
         )
+        self.mask_token = nn.Parameter(torch.zeros(1, 1, config.d_model))
         self._enc_pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, config.d_model))
         self._dec_pos_embed = nn.Parameter(torch.rand(1, config.input_len+config.pred_len, config.d_model))
         padding = 1 if torch.__version__ >= '1.5.0' else 2
@@ -475,7 +476,7 @@ class MAE(nn.Module):
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed token
         return loss
 
-    def forward(self, gt_x, mask_ratio=0.75):
+    def forward(self, e_, d_, gt_x, mask_ratio=0.75):
         enc_x = copy.deepcopy(gt_x)
         latent, mask, ids_restore = self.forward_encoder(enc_x, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)
