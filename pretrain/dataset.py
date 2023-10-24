@@ -2,6 +2,7 @@ import numpy as np
 from pretrain.trans import Mask
 from pretrain.trans import Histseq2seq, Histregression, Selfregression, Predict, Pad_tail, Mask, Perfix, Histlabel, Mae
 from torch.utils.data import Dataset
+import typing
 from adapter.device import torch_npu
 
 
@@ -26,6 +27,7 @@ class Dataset_Pretrain(Dataset):
                  architecture: str="histseq2seq"):
         Data_formate = data_factory[architecture]
         self.trans = Data_formate(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
+        print("architecture", self.trans.architecture())
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10
@@ -85,14 +87,14 @@ class Dataset_Pretrain(Dataset):
         return self.dataset_length
 
 
-class Data_flatten(Dataset_Pretrain):
+class Dataset_flatten(Dataset_Pretrain):
     def __init__(self, index_path: str=".\\data\\index.bin",
                  data_path:str=".\\data\\data.bin",
                  max_car_num: int=40,
                  input_len: int=5,
                  pred_len: int=1,
                  architecture: str="histseq2seq"):
-        super().__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
+        super(Dataset_flatten, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
 
     def _load(self, info: str) -> tuple:
         trj_per_car = {}
@@ -157,7 +159,7 @@ class Dataset_stack(Dataset_Pretrain):
                  input_len: int=5,
                  pred_len: int=1,
                  architecture: str="histseq2seq"):
-        super().__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
+        super(Dataset_stack, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
 
 
     def _load(self, info: str) -> typing.Tuple[list, dict]:
@@ -200,4 +202,5 @@ class Dataset_stack(Dataset_Pretrain):
         sec[:, 4] = sec[:, 4] / self.SIZE_SCALE
         sec[:, 5] = sec[:, 5] / self.SIZE_SCALE
         # 这里input_len怎么设置需要注意！！！！
+        print("there are bug remained here!!!!!! please check dataset stack")
         return sec[:self.input_len]
