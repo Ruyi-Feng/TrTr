@@ -71,7 +71,8 @@ class Exp_Main:
                                     data_path=self.args.data_path,
                                     max_car_num=self.args.max_car_num,
                                     input_len=self.args.input_len,
-                                    pred_len=self.args.pred_len)
+                                    pred_len=self.args.pred_len,
+                                    architecture=self.args.architecture)
         sampler = None
         drop_last = False
         if self.args.is_train:
