@@ -29,7 +29,7 @@ def params():
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--e_layers', type=int, default=6, help='num of encoder layers')
     parser.add_argument('--d_layers', type=int, default=6, help='num of decoder layers')
-    parser.add_argument('--model_type', type=str, default='nrml', help='rltv, nrml, gpt')
+    parser.add_argument('--pos_emb', type=str, default='nrml', help='rltv, nrml')
 
     parser.add_argument('--activation', type=str, default='gelu', help='activation')
     parser.add_argument('--lradj', default='type1')
@@ -40,9 +40,9 @@ def params():
             settings = yaml.load(f, Loader=yaml.FullLoader)
         for k, v in settings.items():
             setattr(args, k, v)
-    if data_form == 'stack':
+    if args.data_form == 'stack':
         args.c_in = 6
-    elif data_form == 'flatten':
+    elif args.data_form == 'flatten':
         args.c_in = 4 * args.max_car_num
     return args
 

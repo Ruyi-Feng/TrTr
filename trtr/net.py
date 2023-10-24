@@ -55,13 +55,13 @@ class Trtr(nn.Module):
                    "num_decoder_layers":config.d_layers,
                    "activation":config.activation,
                    "dropout":dp}
-        if config.model_type == 'rltv':
+        if config.pos_emb == 'rltv':
             self.batch_first = True
             Embedding = RltvEmbedding
             Net = Rltv
             net_cfg.setdefault("max_relative_position", config.max_relative_position)
             self.msk_type = net_factory[self.config.architecture][2]
-        elif config.model_type == 'nrml':
+        elif config.pos_emb == 'nrml':
             self.batch_first, Net, self.msk_type = self.net_factory[config.architecture]
             Embedding = NrmlEmbedding
         self.pred_len = config.pred_len
