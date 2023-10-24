@@ -398,6 +398,9 @@ class Selfregression(PrcsBase):
         super(Selfregression, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
 
+    def architecture(self):
+        return "selfregression"
+
     def derve(self, x):
         """
         x: x, y, w, h
@@ -427,6 +430,9 @@ class Histregression(PrcsBase):
                  pred_len: int = 10) -> None:
         super(Histregression, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "histregression"
 
     def derve(self, x):
         """
@@ -459,6 +465,9 @@ class Histseq2seq(PrcsBase):
                  pred_len: int = 10) -> None:
         super(Histseq2seq, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "histseq2seq"
 
     def derve(self, x):
         """
@@ -504,6 +513,9 @@ class Perfix(PrcsBase):
         super(Perfix, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
 
+    def architecture(self):
+        return "perfix"
+
     def derve(self, x):
         """
         x: x, y, w, h
@@ -533,6 +545,9 @@ class Histlabel(PrcsBase):
                  pred_len: int = 10) -> None:
         super(Histlabel, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "histlabel"
 
     def derve(self, x):
         """
@@ -568,6 +583,9 @@ class Mae(PrcsBase):
                  pred_len: int = 10) -> None:
         super(Mae, self).__init__(noise_rate, msk_rate, poisson_rate,
                                     max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "mae"
 
     def derve(self, x):
         """
