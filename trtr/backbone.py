@@ -89,10 +89,11 @@ class Decoderonly(nn.Module):
         r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
             Unmasked positions are filled with float(0.0).
         """
+        print("there are blank remained in perfix mask!!!!!! please check backbone perfix mask")
         pass
 
-    def forward(self, x_enc, x_dec, enc_self_mask=None, dec_self_mask=None):
-        return self.decoder(x_dec, None, x_mask=dec_self_mask)
+    def forward(self, x_enc, x_dec, tgt_mask=None):
+        return self.decoder(x_dec, x_mask=tgt_mask)
 
 class RelativePosition(nn.Module):
     def __init__(self, num_units, max_relative_position):
