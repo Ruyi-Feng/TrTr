@@ -55,6 +55,7 @@ class Dataset_Pretrain(Dataset):
         """
         trj_per_car, car_per_frm = self._load(info)
         continue_car = self._intersection(car_per_frm)
+        self.car_count = len(continue_car)
         x = self._form_dataset(continue_car, trj_per_car)
         return self._pre_process(x)
 
@@ -203,4 +204,4 @@ class Dataset_stack(Dataset_Pretrain):
         sec[:, 5] = sec[:, 5] / self.SIZE_SCALE
         # 这里input_len怎么设置需要注意！！！！
         print("there are bug remained here!!!!!! please check dataset stack")
-        return sec[:self.input_len]
+        return sec[:self.input_len*self.car_count]
