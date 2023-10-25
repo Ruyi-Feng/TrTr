@@ -365,7 +365,7 @@ class Predict(PrcsBase):
         dec_x: np.array -> torch(size=[batch, input_len, c_in]) without noise
         gt_x : np.array -> torch(size=[batch, pred_len, c_in])
         """
-        x, gt = x[: self.input_len], x[self.input_len: self.input_len + self.pred_len]
+        x, gt = x[: self.input_len - self.pred_len], x[self.input_len - self.pred_len: self.input_len]
         dec_x = copy.deepcopy(x)
         x_copy = copy.deepcopy(x)
         if self._if_noise():

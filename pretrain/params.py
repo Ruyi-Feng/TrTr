@@ -17,12 +17,15 @@ def params():
     parser.add_argument('--train_epochs', type=int, default=100, help='total train epoch')
     parser.add_argument('--batch_size', type=int, default=1024, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
+    parser.add_argument('--dropout', type=float, default=0)
+    parser.add_argument('--warmup_steps', type=int, default=400)
+
     parser.add_argument('--max_car_num', type=int, default=10, help='max car num in a frame')
     parser.add_argument('--max_relative_position', type=int, default=10, help='max relative position')
     parser.add_argument('--input_len', type=int, default=120, help='')  # 前input_len 个数据 如果是用hist-reg则input和pred不一样
     parser.add_argument('--pred_len', type=int, default=60, help='')
-    parser.add_argument('--dropout', type=float, default=0)
-    parser.add_argument('--warmup_steps', type=int, default=400)
+    parser.add_argument('--frm_embed', type=int, default=60, help='')
+    parser.add_argument('--id_embed', type=int, default=20, help='')
 
     parser.add_argument('--d_model', type=int, default=1024, help='dimension of model')
     parser.add_argument('--c_in', type=int, default=6, help='input dimension')

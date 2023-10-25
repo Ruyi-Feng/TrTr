@@ -54,17 +54,21 @@ class Dataset_Pretrain(Dataset):
         return x, gt
         """
         trj_per_car, car_per_frm = self._load(info)
+        print(len(car_per_frm))
+        print(len(trj_per_car))
         continue_car = self._intersection(car_per_frm)
         self.car_count = len(continue_car)
         x = self._form_dataset(continue_car, trj_per_car)
         return self._pre_process(x)
 
     def _intersection(self, car_dict: dict, intersection=None) -> set:
+        # print(car_dict)
         for k in car_dict:
             if intersection is None:
                 intersection = car_dict[k]
             else:
                 intersection = intersection.intersection(car_dict[k])
+                print("temp", len(intersection))
         new_inter = set()
         for k in intersection:
             new_inter.add(k)
@@ -80,7 +84,10 @@ class Dataset_Pretrain(Dataset):
         head, tail = self.train_idx[index][1], self.train_idx[index][2]
         self.f_data.seek(head)
         info = self.f_data.read(tail - head)
+        print("info", len(info))
         seq = self._trans_to_array(info)  # xywh xywh ... (standared)
+        print("seq shape", seq.shape)
+        print("car_num", self.car_count)
         enc, dec, gt = self.trans.derve(seq)  # for mask of compensation
         return enc, dec, gt
 
@@ -94,7 +101,9 @@ class Dataset_flatten(Dataset_Pretrain):
                  max_car_num: int=40,
                  input_len: int=5,
                  pred_len: int=1,
-                 architecture: str="histseq2seq"):
+                 architecture: str="histseq2seq",
+                 frm_embed: int=5,
+                 id_embed: int=5,):
         super(Dataset_flatten, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
 
     def _load(self, info: str) -> tuple:
@@ -159,26 +168,32 @@ class Dataset_stack(Dataset_Pretrain):
                  max_car_num: int=10,
                  input_len: int=5,
                  pred_len: int=1,
-                 architecture: str="histseq2seq"):
+                 architecture: str="histseq2seq",
+                 frm_embed: int=5,
+                 id_embed: int=5,):
         super(Dataset_stack, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
+        self.frm_embed = frm_embed
+        self.id_embed = id_embed
 
 
     def _load(self, info: str) -> typing.Tuple[list, dict]:
         data_list = []
-        car_dict = {}
+        car_per_frm = {}
         lines = info.split()
         for line in lines:
             line = line.decode().split(',')
-            line_data = []
-            for i in range(len(line)):
-                item = float(line[i])
+            line_data = []   # frm, car_id, xywh
+            for i, item in enumerate(line):
+                item = float(item)
                 if i == 0:
-                    car_dict.setdefault(item, set())  # {frame: set()}
+                    car_per_frm.setdefault(item, set())  # {frame: set()}
                 if i == 1:
-                    car_dict[float(line[0])].add(item)
+                    car_per_frm[float(line[0])].add(item)
                 line_data.append(item)
             data_list.append(line_data)
-        return data_list, car_dict
+        print("data_list", len(data_list))
+        print("data 0 ", data_list[0])
+        return data_list, car_per_frm
 
 
     def _form_dataset(self, car_set: set, data_list: list) -> np.array:
@@ -197,11 +212,12 @@ class Dataset_stack(Dataset_Pretrain):
         ]
         """
         if len(sec) < 1:
-            return sec
+            return np.zeros((self.input_len, 6))
+        sec[:, 0] = sec[:, 0] % self.frm_embed
+        sec[:, 1] = sec[:, 1] % self.car_count
         sec[:, 2] = sec[:, 2] / self.LONG_SCALE
         sec[:, 3] = sec[:, 3] / self.LATI_SCALE
         sec[:, 4] = sec[:, 4] / self.SIZE_SCALE
         sec[:, 5] = sec[:, 5] / self.SIZE_SCALE
-        # 这里input_len怎么设置需要注意！！！！
-        print("there are bug remained here!!!!!! please check dataset stack")
+        print("here is still not in same length of seq_len")
         return sec[:self.input_len*self.car_count]

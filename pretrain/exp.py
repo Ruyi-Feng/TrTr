@@ -72,7 +72,9 @@ class Exp_Main:
                                     max_car_num=self.args.max_car_num,
                                     input_len=self.args.input_len,
                                     pred_len=self.args.pred_len,
-                                    architecture=self.args.architecture)
+                                    architecture=self.args.architecture,
+                                    frm_embed=self.args.frm_embed,
+                                    id_embed=self.args.id_embed)
         sampler = None
         drop_last = False
         if self.args.is_train:

@@ -3,8 +3,8 @@ is_train: true
 architecture: mae
 train_epochs: 10
 batch_size: 4
-input_len: 120
-pred_len: 60
+input_len: 10
+pred_len: 10
 d_model: 128
 nhead: 8
 e_layers: 6
@@ -14,3 +14,5 @@ learning_rate: 0.0001
 warmup_steps: 800
 pos_emb: 'nrml'
 data_form: 'stack'
+frm_embed: 60
+id_embed: 100
