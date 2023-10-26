@@ -1,8 +1,7 @@
 task: pretrain
 is_train: true
 architecture: histseq2seq
-train_epochs: 100
-batch_size: 1024
+batch_size: 800
 input_len: 120
 pred_len: 60
 d_model: 512
@@ -11,5 +10,5 @@ e_layers: 6
 d_layers: 6
 dropout: 0.1
 learning_rate: 0.0001
-warmup_steps: 800
+warmup_steps: 200
 pos_emb: 'nrml'

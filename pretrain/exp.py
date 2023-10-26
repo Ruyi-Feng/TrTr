@@ -15,6 +15,7 @@ from adapter.device import amp
 from adapter.device import copy_from_local
 from adapter.device import device_label
 from adapter.device import backend_label
+from adapter.npu2gpu import save as cpu_save
 
 
 class Exp_Main:
@@ -177,13 +178,17 @@ class Exp_Main:
                 # saving model
                 self._save_model(train_loss, path + 'best.pth')
                 if torch_npu is not None:
-                    copy_from_local(path + 'best.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
+                    cpu_save(self.model.module.state_dict(), path + 'cpu_best.pth')
+                    builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'best.pth')).name(self.args.architecture+'_best').version("1.0.0").type("pytorch").build()
+                    repository.register_model(builder)
             dist.barrier()
         if dist.get_rank() == 0:
             torch.save(self.model.module.state_dict(), path + 'last.pth')
             print("=============success save last checkpoints============")
             if torch_npu is not None:
-                copy_from_local(path + 'last.pth', "s3a://manas-data-bucket/user/admin/MANAS_SAMPLE/dataset/1002/U202308110001" , overwrite=True)
+                cpu_save(self.model.module.state_dict(), path + 'cpu_last.pth')
+                builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'last.pth')).name(self.args.architecture+'_last').version("1.0.0").type("pytorch").build()
+                repository.register_model(builder)
                 print("===========finish copy last checkpoints============")
 #         print("rank_number", dist.get_rank())
         dist.barrier()
