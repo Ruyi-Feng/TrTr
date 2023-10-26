@@ -27,7 +27,6 @@ class Dataset_Pretrain(Dataset):
                  architecture: str="histseq2seq"):
         Data_formate = data_factory[architecture]
         self.trans = Data_formate(max_car_num=max_car_num, input_len=input_len, pred_len=pred_len)  # max_seq_len=max_seq_len
-        print("architecture", self.trans.architecture())
         self.LONG_SCALE = 10
         self.LATI_SCALE = 10
         self.SIZE_SCALE = 10
@@ -54,21 +53,17 @@ class Dataset_Pretrain(Dataset):
         return x, gt
         """
         trj_per_car, car_per_frm = self._load(info)
-        print(len(car_per_frm))
-        print(len(trj_per_car))
         continue_car = self._intersection(car_per_frm)
         self.car_count = len(continue_car)
         x = self._form_dataset(continue_car, trj_per_car)
         return self._pre_process(x)
 
     def _intersection(self, car_dict: dict, intersection=None) -> set:
-        # print(car_dict)
         for k in car_dict:
             if intersection is None:
                 intersection = car_dict[k]
             else:
                 intersection = intersection.intersection(car_dict[k])
-                print("temp", len(intersection))
         new_inter = set()
         for k in intersection:
             new_inter.add(k)
@@ -84,10 +79,7 @@ class Dataset_Pretrain(Dataset):
         head, tail = self.train_idx[index][1], self.train_idx[index][2]
         self.f_data.seek(head)
         info = self.f_data.read(tail - head)
-        print("info", len(info))
         seq = self._trans_to_array(info)  # xywh xywh ... (standared)
-        print("seq shape", seq.shape)
-        print("car_num", self.car_count)
         enc, dec, gt = self.trans.derve(seq)  # for mask of compensation
         return enc, dec, gt
 
@@ -128,7 +120,6 @@ class Dataset_flatten(Dataset_Pretrain):
         # 原本是把每辆车的轨迹横着粘贴起来
         total_data = []
         pad_num = self.max_car_num - len(continue_car)
-        # print("pad_num", pad_num, "continues", len(continue_car))
         tmp = np.zeros((self.input_len, 4))
         for car in continue_car:
             tmp = np.array(trj_per_car[car])[:, 2:]
@@ -191,8 +182,6 @@ class Dataset_stack(Dataset_Pretrain):
                     car_per_frm[float(line[0])].add(item)
                 line_data.append(item)
             data_list.append(line_data)
-        print("data_list", len(data_list))
-        print("data 0 ", data_list[0])
         return data_list, car_per_frm
 
 

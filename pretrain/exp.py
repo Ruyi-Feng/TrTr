@@ -9,13 +9,15 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
-from trtr.net import Trtr, MAE
 from adapter.device import torch_npu
 from adapter.device import amp
 from adapter.device import copy_from_local
 from adapter.device import device_label
 from adapter.device import backend_label
 from adapter.npu2gpu import save as cpu_save
+from adapter.device import repository
+from adapter.device import ParameterBuilder
+from adapter.device import PathConvert
 
 
 class Exp_Main:
@@ -47,8 +49,10 @@ class Exp_Main:
 
     def _task_model(self):
         if self.args.architecture == 'mae':
+            from trtr.net import MAE
             model = MAE(self.args).float().to(self.device)
         else:
+            from trtr.net import TrTr
             model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.sepecific):
             model.load_state_dict(torch.load(self.args.sepecific, map_location=torch.device('cpu')))
@@ -56,8 +60,10 @@ class Exp_Main:
 
     def _build_model(self):
         if self.args.architecture == 'mae':
+            from trtr.net import MAE
             model = MAE(self.args).float().to(self.device)
         else:
+            from trtr.net import TrTr
             model = Trtr(self.args).float().to(self.device)
         if os.path.exists(self.args.save_path + 'checkpoint_best.pth'):
             model.load_state_dict(torch.load(self.args.save_path + 'checkpoint_best.pth', map_location=torch.device('cpu')))
@@ -178,7 +184,7 @@ class Exp_Main:
                 # saving model
                 self._save_model(train_loss, path + 'best.pth')
                 if torch_npu is not None:
-                    cpu_save(self.model.module.state_dict(), path + 'cpu_best.pth')
+                    cpu_save(self.model.module, path + 'cpu_best.pth')
                     builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'best.pth')).name(self.args.architecture+'_best').version("1.0.0").type("pytorch").build()
                     repository.register_model(builder)
             dist.barrier()
@@ -186,7 +192,7 @@ class Exp_Main:
             torch.save(self.model.module.state_dict(), path + 'last.pth')
             print("=============success save last checkpoints============")
             if torch_npu is not None:
-                cpu_save(self.model.module.state_dict(), path + 'cpu_last.pth')
+                cpu_save(self.model.module, path + 'cpu_last.pth')
                 builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'last.pth')).name(self.args.architecture+'_last').version("1.0.0").type("pytorch").build()
                 repository.register_model(builder)
                 print("===========finish copy last checkpoints============")
