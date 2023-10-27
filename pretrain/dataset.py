@@ -200,13 +200,17 @@ class Dataset_stack(Dataset_Pretrain):
             [frm, car_id, xywh],
         ]
         """
+        sec = sec[:self.input_len*self.car_count]
+        pad_len = self.input_len * self.max_car_num - len(sec) if len(sec) < self.input_len * self.max_car_num else 0
         if len(sec) < 1:
-            return np.zeros((self.input_len, 6))
+            return np.ones((self.input_len, 6)) * -1
         sec[:, 0] = sec[:, 0] % self.frm_embed
         sec[:, 1] = sec[:, 1] % self.car_count
         sec[:, 2] = sec[:, 2] / self.LONG_SCALE
         sec[:, 3] = sec[:, 3] / self.LATI_SCALE
         sec[:, 4] = sec[:, 4] / self.SIZE_SCALE
         sec[:, 5] = sec[:, 5] / self.SIZE_SCALE
+        for _ in range(pad_len):
+            sec = np.concatenate((sec, np.ones((1, 6)) * -1))
         print("here is still not in same length of seq_len")
-        return sec[:self.input_len*self.car_count]
+        return sec

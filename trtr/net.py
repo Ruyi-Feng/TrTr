@@ -211,20 +211,22 @@ class MAE(nn.Module):
 
         return x
 
-    def forward_loss(self, gt_x, pred, mask):
+    def forward_loss(self, gt_x, pred, mask, valid):
         """
         gt_x: [batch, seq_len, c_in]
         pred:  [batch, seq_len, c_in]
         mask:  [batch, seq_len]
         """
         loss = (pred - gt_x) ** 2
+        loss = loss * valid
         loss = loss.mean(dim=-1)  # [N, L], mean loss per token
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed token
         return loss
 
     def forward(self, e_, d_, gt_x, mask_ratio=0.75):
+        valid = torch.gt(gt_x, 0).to(gt_x.device)
         enc_x = copy.deepcopy(gt_x)
         latent, mask, ids_restore = self.forward_encoder(enc_x, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)
-        loss = self.forward_loss(gt_x, pred, mask)
+        loss = self.forward_loss(gt_x, pred, mask, valid)
         return pred, loss
