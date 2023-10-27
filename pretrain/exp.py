@@ -9,16 +9,14 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
-from trtr.net import MAE, Trtr
+from trtr.net import Trtr, MAE
 from adapter.device import torch_npu
 from adapter.device import amp
 from adapter.device import copy_from_local
 from adapter.device import device_label
 from adapter.device import backend_label
 from adapter.npu2gpu import save as cpu_save
-from adapter.device import repository
-from adapter.device import ParameterBuilder
-from adapter.device import PathConvert
+import copy
 
 
 class Exp_Main:
@@ -181,18 +179,14 @@ class Exp_Main:
                 # saving model
                 self._save_model(train_loss, path + 'best.pth')
                 if torch_npu is not None:
-                    cpu_save(self.model.module, path + 'cpu_best.pth')
-                    builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'best.pth')).name(self.args.architecture+'_best').version("1.0.0").type("pytorch").build()
-                    repository.register_model(builder)
+                    save_model = copy.deepcopy(self.model.module)
+                    cpu_save(save_model, path + 'cpu_best.pth')
             dist.barrier()
         if dist.get_rank() == 0:
             torch.save(self.model.module.state_dict(), path + 'last.pth')
             print("=============success save last checkpoints============")
             if torch_npu is not None:
                 cpu_save(self.model.module, path + 'cpu_last.pth')
-                builder = ParameterBuilder().path(PathConvert().get_abpath(path + 'last.pth')).name(self.args.architecture+'_last').version("1.0.0").type("pytorch").build()
-                repository.register_model(builder)
-                print("===========finish copy last checkpoints============")
 #         print("rank_number", dist.get_rank())
         dist.barrier()
         dist.destroy_process_group()
