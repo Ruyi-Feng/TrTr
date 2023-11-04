@@ -9,6 +9,6 @@ nhead: 8
 e_layers: 6
 d_layers: 6
 dropout: 0.1
-learning_rate: 0.0001
+learning_rate: 0.001
 warmup_steps: 200
 pos_emb: 'nrml'
