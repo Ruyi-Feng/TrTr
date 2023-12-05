@@ -2,7 +2,7 @@ from pretrain.data_provider import Data_Form
 
 
 def generate_data(flnms):
-    Data_Form(flnms, 30)
+    Data_Form(flnms, 30, 6)
 
 
 if __name__ == '__main__':
