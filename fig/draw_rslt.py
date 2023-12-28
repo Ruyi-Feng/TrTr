@@ -81,5 +81,5 @@ def draw_traj(info):
             seq_dec = np.array(v["dec"][batch])
             draw_time_space(seq_pd, seq_gt, seq_enc, seq_dec)
 
-info = load("./results/histlabelepoch20.json")
+info = load("./results/histlabel_local_epoch75.json")
 draw_traj(info)
