@@ -568,8 +568,8 @@ class Histlabel(PrcsBase):
         label_end = self.input_len - self.pred_len
         enc_x = copy.deepcopy(x[:enc_end])
         dec_x = copy.deepcopy(x[dec_start:])
-        dec_x[label_end:] = 0
-        gt_x = copy.deepcopy(x[label_end:])
+        dec_x[-self.pred_len:] = 0
+        gt_x = copy.deepcopy(x[-self.pred_len:])
         return enc_x, dec_x, gt_x
 
 
