@@ -43,8 +43,8 @@ class Data_Form:
             data["width"] = abs(data[cols.right] - data[cols.left])
             data["height"] = abs(data[cols.bottom] - data[cols.top])
         self.min_y = data[cols.top].min() - 10  # 用来把数据集的y规范到较小的范围
-        f_data = open("./data/train/data_interval6_len30.bin", 'ab+')
-        f_index = open("./data/train/index_interval6_len30.bin", 'ab+')
+        f_data = open("./data/train/data_val_interval6_len30.bin", 'ab+')
+        f_index = open("./data/train/index_val_interval6_len30.bin", 'ab+')
         self.scale = self.flnms[flnm]["scale"]
         data_s = self._split_data(data, cols)
         data_s = data_s.sort_values(by=["split", cols.frame, cols.car_id]).reset_index(drop=True)
@@ -87,7 +87,7 @@ class Data_Form:
         self.window.clear()
 
     def _get_only_id(self, flnm, ID, sp):
-        return flnm + str(ID) + str(sp)
+        return flnm + "_" + str(ID)+ "_"  + str(sp)
 
     def _sum_window(self):
         added = 0

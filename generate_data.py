@@ -61,5 +61,5 @@ if __name__ == '__main__':
              "val4": {"path": "H://CitySim//ExpresswayA//Expressway A (Weaving Segment)//Trajectories//ExpresswayA-16.csv", "scale": 0.056, "labels": citysim_label},
              "val5": {"path": "H://CitySim//ExpresswayA//Expressway A (Weaving Segment)//Trajectories//ExpresswayA-18.csv", "scale": 0.056, "labels": citysim_label},
              }
-    generate_data(flnms)
-    # generate_data(flnms_val)
+    # generate_data(flnms)
+    generate_data(flnms_val)
