@@ -214,3 +214,57 @@ class Dataset_stack(Dataset_Pretrain):
             sec = np.concatenate((sec, np.ones((1, 6)) * -1))
         print("here is still not in same length of seq_len")
         return sec
+
+
+class Dataset_flatten_simu(Dataset_flatten):
+    def __init__(self, index_path: str=".\\data\\index.bin",
+                 data_path:str=".\\data\\data.bin",
+                 max_car_num: int=40,
+                 input_len: int=5,
+                 pred_len: int=1,
+                 architecture: str="histseq2seq",
+                 frm_embed: int=5,
+                 id_embed: int=5,):
+        super(Dataset_flatten_simu, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
+
+    def _pre_process(self, sec):
+        """
+        sec: np.array
+        [
+            [xywh1, xywh2, ...],
+            [xywh1, xywh2, ...],
+        ]
+        """
+        if len(sec) < 1:
+            return sec
+        loop = len(sec[0]) // 4
+        for i in range(loop):
+            sec[:, i * 4 + 0] = sec[:, i * 4 + 0] / self.LONG_SCALE
+            sec[:, i * 4 + 1] = sec[:, i * 4 + 1] / self.LATI_SCALE
+            sec[:, i * 4 + 2] = sec[:, i * 4 + 2] / self.SIZE_SCALE
+            sec[:, i * 4 + 3] = sec[:, i * 4 + 3] / self.SIZE_SCALE
+        return sec[:self.input_len], sec
+
+    def __getitem__(self, index: int):
+        """
+        return:
+        enc_x, dec_x, gt_x
+        """
+        head, tail = self.train_idx[index][1], self.train_idx[index][2]
+        self.f_data.seek(head)
+        info = self.f_data.read(tail - head)
+        seq, seq_ori = self._trans_to_array(info)  # xywh xywh ... (standared)
+        enc, dec, gt = self.trans.derve(seq)  # for mask of compensation
+        return enc, dec, gt, seq_ori
+
+
+class Dataset_stack_simu(Dataset_stack):
+    def __init__(self, index_path: str=".\\data\\index.bin",
+                 data_path:str=".\\data\\data.bin",
+                 max_car_num: int=10,
+                 input_len: int=5,
+                 pred_len: int=1,
+                 architecture: str="histseq2seq",
+                 frm_embed: int=5,
+                 id_embed: int=5,):
+        super(Dataset_stack_simu, self).__init__(index_path, data_path, max_car_num, input_len, pred_len, architecture)
