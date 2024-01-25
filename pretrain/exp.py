@@ -187,7 +187,7 @@ class Exp_Main:
             print("=============success save last checkpoints============")
             if torch_npu is not None:
                 cpu_save(self.model.module, path + 'cpu_last.pth')
-#         print("rank_number", dist.get_rank())
+        # print("rank_number", dist.get_rank())
         dist.barrier()
         dist.destroy_process_group()
 

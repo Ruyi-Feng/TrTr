@@ -572,6 +572,28 @@ class Histlabel(PrcsBase):
         gt_x = copy.deepcopy(x[-self.pred_len:])
         return enc_x, dec_x, gt_x
 
+    def merge(self, enc, dec, gt):
+        """
+        enc: [batch, (input_len-pred_len)/2, c_in]
+        dec: [(input_len+pred_len)/2, c_in]
+        gt : [pred_len, c_in]
+        with batch dim
+        """
+        seq = torch.cat((enc, dec[:self.pred_len], gt), 0)
+        return seq
+
+    def extend(self, seq):
+        """
+        seq -> new enc_x, dec_x
+        """
+        valid_len = self.input_len - self.pred_len
+        gt_x = np.zeros((self.pred_len, seq.shape[1]))
+        extended_seq = seq[-valid_len:]
+        enc_end = int((self.input_len - self.pred_len) / 2)
+        enc_x = copy.deepcopy(extended_seq[:enc_end])
+        dec_x = torch.cat((x[enc_end:], gt_x), 0)
+        return enc_x, dec_x, gt_x
+
 
 class Mae(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
