@@ -79,10 +79,12 @@ class Exp_Main:
                                     id_embed=self.args.id_embed)
         sampler = None
         drop_last = False
+        shuffle = False
         if self.args.is_train:
             sampler = DistributedSampler(data_set)
             drop_last=self.args.drop_last
-        data_loader = DataLoader(data_set, batch_size=batch_sz, sampler=sampler, drop_last=drop_last, pin_memory=True)
+            shuffle = True
+        data_loader = DataLoader(data_set, batch_size=batch_sz, sampler=sampler, drop_last=drop_last, pin_memory=True, shuffle=shuffle)
         return data_set, data_loader
 
     def _select_optimizer(self):
