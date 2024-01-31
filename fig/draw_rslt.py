@@ -81,5 +81,28 @@ def draw_traj(info):
             seq_dec = np.array(v["dec"][batch])
             draw_time_space(seq_pd, seq_gt, seq_enc, seq_dec)
 
-info = load("./results/histlabelepoch20.json")
-draw_traj(info)
+
+def draw_frms_simu(info):
+    for k, v in info.items():
+        for i in range(len(v["simulate"])):
+            visual(v["simulate"][i], v["groundtruth"][i])
+
+def draw_one_sample_time_space(seq_simu, seq_gt):
+    car_num = seq_simu.shape[1] // 4
+    for i in range(car_num):
+        plt.figure()
+        plt.plot(np.arange(len(seq_gt)), seq_gt[:, i * 4], c='g', label="groudtruth")
+        plt.plot(np.arange(len(seq_simu)), seq_simu[:, i * 4], c='b', label="simulate")
+        plt.legend()
+        plt.show()
+
+
+def draw_simu_time_space(info):
+    for k, v in info.items():
+        simu = np.array(v["simulate"])
+        gt = np.array(v["groundtruth"])
+        draw_one_sample_time_space(simu, gt)
+
+
+info = load("./results/histlabel_simu.json")
+draw_frms_simu(info)

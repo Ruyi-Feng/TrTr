@@ -2,7 +2,7 @@ from pretrain.data_provider import Data_Form
 
 
 def generate_data(flnms):
-    Data_Form(flnms, 30)
+    Data_Form(flnms, 120, 6)
 
 
 if __name__ == '__main__':
@@ -61,5 +61,15 @@ if __name__ == '__main__':
              "val4": {"path": "H://CitySim//ExpresswayA//Expressway A (Weaving Segment)//Trajectories//ExpresswayA-16.csv", "scale": 0.056, "labels": citysim_label},
              "val5": {"path": "H://CitySim//ExpresswayA//Expressway A (Weaving Segment)//Trajectories//ExpresswayA-18.csv", "scale": 0.056, "labels": citysim_label},
              }
-    generate_data(flnms)
-    # generate_data(flnms_val)
+    freeway_val = {
+        "test1": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-01.csv", "scale": 0.138, "labels": citysim_label},
+        "test2": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-02.csv", "scale": 0.138, "labels": citysim_label},
+        "test3": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-03.csv", "scale": 0.138, "labels": citysim_label},
+        "test4": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-04.csv", "scale": 0.138, "labels": citysim_label},
+        "test5": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-05.csv", "scale": 0.138, "labels": citysim_label},
+        "test6": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-06.csv", "scale": 0.138, "labels": citysim_label},
+        "test7": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-07.csv", "scale": 0.138, "labels": citysim_label},
+        "test8": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-08.csv", "scale": 0.138, "labels": citysim_label},
+    }
+    # generate_data(flnms)
+    generate_data(freeway_val)

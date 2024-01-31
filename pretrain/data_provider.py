@@ -2,7 +2,7 @@ import pandas as pd
 from collections import deque
 
 class Cols:
-    def __init__(self, frame="frame", car_id="car_id", left="left", top="top", right="right", bottom="bottom", width="width", height="height"):
+    def __init__(self, frame="frame", car_id="car_id", left="left", top="top", right="right", bottom="bottom", width="width", height="height", interval=6):
         self.frame = frame
         self.car_id = car_id
         self.left = left
@@ -11,6 +11,7 @@ class Cols:
         self.bottom = bottom
         self.width = width
         self.height = height
+        self.interval = interval
 
 class Data_Form:
     """
@@ -25,7 +26,7 @@ class Data_Form:
     mark_ID, head_byte, tail_byte
     Each line is a position mark of one training token
     """
-    def __init__(self, flnms: dict, length: int=30):
+    def __init__(self, flnms: dict, length: int=30, interval:int=10):
         self.LEN = length
         self.SEC_LEN = 300.0   # _<m>
         self.window = deque(maxlen=self.LEN)
@@ -33,7 +34,7 @@ class Data_Form:
         self.flnms = flnms
         for flnm in flnms:
             labels = flnms[flnm]["labels"]
-            cols = Cols(**labels)
+            cols = Cols(**labels, interval=interval)
             self._run(flnm, cols)
 
     def _run(self, flnm: str, cols: object):
@@ -42,31 +43,33 @@ class Data_Form:
             data["width"] = abs(data[cols.right] - data[cols.left])
             data["height"] = abs(data[cols.bottom] - data[cols.top])
         self.min_y = data[cols.top].min() - 10  # 用来把数据集的y规范到较小的范围
-        f_data = open("./data/train/data.bin", 'ab+')
-        f_index = open("./data/train/index.bin", 'ab+')
+        f_data = open("./data/val/data_free_val_interval6_len120.bin", 'ab+')
+        f_index = open("./data/val/index_free_val_interval6_len120.bin", 'ab+')
         self.scale = self.flnms[flnm]["scale"]
         data_s = self._split_data(data, cols)
         data_s = data_s.sort_values(by=["split", cols.frame, cols.car_id]).reset_index(drop=True)
-        for sp, data in data_s.groupby(data_s["split"]):
-            self._init_window()
-            for ID, group in data.groupby(data[cols.frame]):
-                byte_frame = 0
-                for _, row in group.iterrows():
-                    id, cx, cy, w, h = self._stand_boxes(row, cols)
-                    row_s = "{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(ID, id, cx, cy, w, h)
-                    row_s = row_s.encode()
-                    write_len = f_data.write(row_s)
-                    byte_frame += write_len
-                notable, head, tail = self._update_window(byte_frame)
-                if notable:
-                    idx_s = "{:s},{:d},{:d}\n".format(self._get_only_id(flnm, ID, sp), head, tail).encode()
-                    f_index.write(idx_s)
+        for sp, data_sp in data_s.groupby(data_s["split"]):
+            for it, data in data_sp.groupby(data_sp["interval"]):
+                self._init_window()
+                for ID, group in data.groupby(data[cols.frame]):
+                    byte_frame = 0
+                    for _, row in group.iterrows():
+                        id, cx, cy, w, h = self._stand_boxes(row, cols)
+                        row_s = "{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(ID, id, cx, cy, w, h)
+                        row_s = row_s.encode()
+                        write_len = f_data.write(row_s)
+                        byte_frame += write_len
+                    notable, head, tail = self._update_window(byte_frame)
+                    if notable:
+                        idx_s = "{:s},{:d},{:d}\n".format(self._get_only_id(flnm, ID, sp), head, tail).encode()
+                        f_index.write(idx_s)
 
     def _split_data(self, data, cols):
         """
         把数据分成小片区的
         """
         data["split"] = data[cols.left] // (self.SEC_LEN / self.scale)
+        data["interval"] = data[cols.frame] % cols.interval
         return data
 
     def _stand_boxes(self, row, cols):
@@ -84,7 +87,7 @@ class Data_Form:
         self.window.clear()
 
     def _get_only_id(self, flnm, ID, sp):
-        return flnm + str(ID) + str(sp)
+        return flnm + "_" + str(ID)+ "_"  + str(sp)
 
     def _sum_window(self):
         added = 0
