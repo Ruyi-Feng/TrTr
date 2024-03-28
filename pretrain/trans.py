@@ -114,7 +114,7 @@ class Pad_tail(PrcsBase):
         when add noise by randomly mask vehicles of one frame,
         msk_rate percent of vehicles will be masked in one frame.
         """
-        super(Mask, self).__init__(noise_rate, msk_rate, poisson_rate,
+        super(Pad_tail, self).__init__(noise_rate, msk_rate, poisson_rate,
                                    max_span_len, max_car_num, input_len, pred_len)
 
     def _mask(self, tokens: typing.List[list], mask_scheme: MaskScheme) -> typing.List[list]:
@@ -621,3 +621,85 @@ class Mae(PrcsBase):
         """
         return x, x, copy.deepcopy(x)
 
+
+class Env_gpt_seq2seq(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Env_gpt_seq2seq, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "env_gpt"
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        encoder only with gpt
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len, c_in])
+        dec_x: np.array -> torch(size=[batch, input_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len, c_in])
+        """
+        enc_x = torch.zeros(self.input_len, x.shape[1])
+        label_end = self.input_len - self.pred_len
+        dec_x = copy.deepcopy(x[:label_end])
+        gt_x = copy.deepcopy(x[label_end:])
+        return enc_x, dec_x, gt_x
+
+class Probe(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Probe, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+        """
+        此处msk rate当作probe rate用了, msk_rate为实际保留下来的探针比例
+        非探针部分的pred_len部分全部填0
+        """
+
+    def architecture(self):
+        return "probe"
+
+    def _choose_probe(self, seq_len):
+        probe_list = []
+        for i in range(seq_len // 4):
+            if random.random() >= self.msk_rate:
+                probe_list.append(i)
+        return probe_list
+
+    def _generate_probe(self, non_probe_list, x, label_end):
+        for i in non_probe_list:
+            x[label_end:, i: i+4] = 0
+        return x
+
+    def _probing(self, x, label_end):
+        non_probe_list = self._choose_probe(x.shape[1])
+        return self._generate_probe(non_probe_list, x, label_end)
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        encoder only with gpt
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len, c_in])
+        dec_x: np.array -> torch(size=[batch, input_len, c_in])
+        gt_x : np.array -> torch(size=[batch, pred_len, c_in])
+        """
+        enc_x = torch.zeros(self.input_len, x.shape[1])
+        label_end = self.input_len - self.pred_len
+        dec_x = self._probing(copy.deepcopy(x), label_end)
+        gt_x = copy.deepcopy(x[label_end:])
+        return enc_x, dec_x, gt_x
