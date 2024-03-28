@@ -9,8 +9,8 @@ def params():
     parser.add_argument('--architecture', type=str, default='histseq2seq', help='architecture of the task')
     parser.add_argument('--data_form', type=str, default='flatten', help='flatten: xywh xywh ..., stack: frm car_id xywh ...')
     parser.add_argument('--sepecific', type=str, default=None, help='location of sepecific model checkpoints')
-    parser.add_argument('--index_path', type=str, default='./data/val/index_free_val_interval6_len120.bin')
-    parser.add_argument('--data_path', type=str, default='./data/val/data_free_val_interval6_len120.bin')
+    parser.add_argument('--index_path', type=str, default='./data/train/index_interval6_len40.bin')
+    parser.add_argument('--data_path', type=str, default='./data/train/data_interval6_len40.bin')
 
     parser.add_argument('--is_train', type=bool, default=True, help='if True is train model')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='original leaning rate')
