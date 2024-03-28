@@ -2,7 +2,7 @@ from pretrain.data_provider import Data_Form
 
 
 def generate_data(flnms):
-    Data_Form(flnms, 120, 6)
+    Data_Form(flnms, 40, 6)
 
 
 if __name__ == '__main__':
@@ -71,5 +71,5 @@ if __name__ == '__main__':
         "test7": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-07.csv", "scale": 0.138, "labels": citysim_label},
         "test8": {"path": "H://CitySim//FreewayC//Trajectories//FreewayC-08.csv", "scale": 0.138, "labels": citysim_label},
     }
-    # generate_data(flnms)
-    generate_data(freeway_val)
+    generate_data(flnms)
+    # generate_data(freeway_val)
