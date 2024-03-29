@@ -209,6 +209,6 @@ class Exp_Main:
                     enc_x = enc_x.detach().cpu().tolist()  # batch, seq_len, d_model
                     dec_x = dec_x.detach().cpu().tolist()
                     result.update({i: {"gt": gt_x, "pd": output, "enc": enc_x, "dec": dec_x}})
-                    if i > 10:
+                    if i > 50:
                         break
             return result
