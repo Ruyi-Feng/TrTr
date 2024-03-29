@@ -65,6 +65,8 @@ class Trtr(nn.Module):
         "pad_tail": [False, nn.Transformer, None],
         "perfix": [False, GPT, 'perfix'],
         "histlabel": [False, nn.Transformer, None],
+        "env_gpt_seq2seq": [False, nn.Transformer, 'nrml'],
+        "probe": [False, nn.Transformer, 'nrml'],
     }
 
     def __init__(self, config):
