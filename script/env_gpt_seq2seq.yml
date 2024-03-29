@@ -1,0 +1,14 @@
+task: pretrain
+is_train: true
+architecture: env_gpt_seq2seq
+batch_size: 1024
+input_len: 30
+pred_len: 10
+d_model: 256
+nhead: 8
+e_layers: 3
+d_layers: 3
+dropout: 0.1
+learning_rate: 0.01
+warmup_steps: 400
+pos_emb: 'nrml'
