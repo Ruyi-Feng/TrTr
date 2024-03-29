@@ -67,7 +67,7 @@ def draw_time_space(seq_pd, seq_gt, seq_enc, seq_dec):
         plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_gt)), seq_gt[:, i * 4], c='g', label="gt")
         plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_pd)), seq_pd[:, i * 4], c='r', label="pd")
         plt.plot(np.arange(0, len(seq_enc)), seq_enc[:, i * 4], c='b')
-        plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_dec)), seq_dec[:, i * 4], c='y', label="dec")
+        # plt.plot(np.arange(len(seq_enc), len(seq_enc)+len(seq_dec)), seq_dec[:, i * 4], c='y', label="dec")
         plt.legend()
         plt.show()
 
@@ -85,7 +85,10 @@ def draw_traj(info):
 def draw_frms_simu(info):
     for k, v in info.items():
         for i in range(len(v["simulate"])):
-            visual(v["simulate"][i], v["groundtruth"][i])
+            if len(v["groundtruth"]) < len(v["simulate"]):
+                visual(np.zeros_like(v["simulate"][i]), v["simulate"][i])
+            else:
+                visual(v["groundtruth"][i], v["simulate"][i])
 
 def draw_one_sample_time_space(seq_simu, seq_gt):
     car_num = seq_simu.shape[1] // 4
@@ -104,5 +107,6 @@ def draw_simu_time_space(info):
         draw_one_sample_time_space(simu, gt)
 
 
-info = load("./results/histlabel_simu.json")
+info = load("./results/histseq2seq_simu_epoch48.json")
 draw_frms_simu(info)
+
