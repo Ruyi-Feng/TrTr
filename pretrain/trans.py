@@ -416,7 +416,7 @@ class Selfregression(PrcsBase):
         """
         gt_x = copy.deepcopy(x[1:])
         dec_x = copy.deepcopy(x[:-1])
-        enc_x = copy.deepcopy(x[:-1])
+        enc_x = torch.zeros(self.input_len - 1, x.shape[1])  # 这样就排除了作弊嫌疑
         return enc_x, dec_x, gt_x
 
 
