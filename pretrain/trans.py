@@ -673,6 +673,26 @@ class Env_gpt_seq2seq(PrcsBase):
         gt_x = copy.deepcopy(x[label_end:])
         return enc_x, dec_x, gt_x
 
+    def merge(self, enc, dec, pred):
+        """
+        enc: [batch, (input_len-pred_len), c_in]
+        dec: [pred_len, c_in]
+        pred : [pred_len, c_in]
+        with batch dim
+        """
+        seq = torch.cat((dec, pred), 0)
+        return seq
+
+    def extend(self, seq):
+        """
+        seq -> new enc_x, dec_x
+        """
+        valid_len = self.input_len - self.pred_len
+        dec_x = copy.deepcopy(seq[-valid_len:])
+        enc_x = torch.zeros(self.input_len, seq.shape[1])
+        gt_x = torch.zeros(self.pred_len, seq.shape[1])
+        return enc_x, dec_x, gt_x
+
 class Probe(PrcsBase):
     def __init__(self, noise_rate: float = 0.3,
                  msk_rate: float = 0.3,
