@@ -743,3 +743,31 @@ class Probe(PrcsBase):
         dec_x = self._probing(copy.deepcopy(x), label_end)
         gt_x = copy.deepcopy(x[label_end:])
         return enc_x, dec_x, gt_x
+
+
+class Cmplt(PrcsBase):
+    def __init__(self, noise_rate: float = 0.3,
+                 msk_rate: float = 0.3,
+                 poisson_rate: int = 3,
+                 max_span_len: int = 5,
+                 max_car_num: int = 10,
+                 input_len: int = 20,
+                 pred_len: int = 10) -> None:
+        super(Cmplt, self).__init__(noise_rate, msk_rate, poisson_rate,
+                                    max_span_len, max_car_num, input_len, pred_len)
+
+    def architecture(self):
+        return "cmplt"
+
+    def derve(self, x):
+        """
+        x: x, y, w, h
+        用于重构断面内部的轨迹
+        老师从隧道找的idea
+
+        return
+        ------
+        enc_x: np.array -> torch(size=[batch, input_len, c_in])
+        dec_x: np.array -> torch(size=[batch, input_len, c_in]
+        """
+        pass
