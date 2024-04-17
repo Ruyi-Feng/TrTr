@@ -738,9 +738,10 @@ class Probe(PrcsBase):
         dec_x: np.array -> torch(size=[batch, input_len, c_in])
         gt_x : np.array -> torch(size=[batch, pred_len, c_in])
         """
-        enc_x = torch.zeros(self.input_len, x.shape[1])
+        # enc_x = torch.zeros(self.input_len, x.shape[1])
         label_end = self.input_len - self.pred_len
         dec_x = self._probing(copy.deepcopy(x), label_end)
+        enc_x = copy.deepcopy(dec_x)
         gt_x = copy.deepcopy(x[label_end:])
         return enc_x, dec_x, gt_x
 

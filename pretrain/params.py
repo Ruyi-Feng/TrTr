@@ -9,8 +9,8 @@ def params():
     parser.add_argument('--architecture', type=str, default='histseq2seq', help='architecture of the task')
     parser.add_argument('--data_form', type=str, default='flatten', help='flatten: xywh xywh ..., stack: frm car_id xywh ...')
     parser.add_argument('--sepecific', type=str, default=None, help='location of sepecific model checkpoints')
-    parser.add_argument('--index_path', type=str, default='./data/train/index_interval6_len40.bin')
-    parser.add_argument('--data_path', type=str, default='./data/train/data_interval6_len40.bin')
+    parser.add_argument('--index_path', type=str, default='./data/train/index_600m_interval6_len30.bin')
+    parser.add_argument('--data_path', type=str, default='./data/train/data_600m_interval6_len30.bin')
 
     parser.add_argument('--is_train', type=bool, default=True, help='if True is train model')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='original leaning rate')
@@ -20,7 +20,7 @@ def params():
     parser.add_argument('--dropout', type=float, default=0)
     parser.add_argument('--warmup_steps', type=int, default=400)
 
-    parser.add_argument('--max_car_num', type=int, default=10, help='max car num in a frame')
+    parser.add_argument('--max_car_num', type=int, default=20, help='max car num in a frame')
     parser.add_argument('--max_relative_position', type=int, default=10, help='max relative position')
     parser.add_argument('--input_len', type=int, default=120, help='')  # 前input_len 个数据 如果是用hist-reg则input和pred不一样
     parser.add_argument('--pred_len', type=int, default=60, help='')
