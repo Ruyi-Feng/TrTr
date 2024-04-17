@@ -28,7 +28,7 @@ class Data_Form:
     """
     def __init__(self, flnms: dict, length: int=30, interval:int=10):
         self.LEN = length
-        self.SEC_LEN = 300.0   # _<m>
+        self.SEC_LEN = 600.0   # _<m>
         self.window = deque(maxlen=self.LEN)
         self.last_bytes = 0
         self.interval = interval
@@ -44,8 +44,8 @@ class Data_Form:
             data["width"] = abs(data[cols.right] - data[cols.left])
             data["height"] = abs(data[cols.bottom] - data[cols.top])
         self.min_y = data[cols.top].min() - 10  # 用来把数据集的y规范到较小的范围
-        f_data = open("./data/train/data_interval%d_len%d.bin"%(self.interval, self.LEN), 'ab+')
-        f_index = open("./data/train/index_interval%d_len%d.bin"%(self.interval, self.LEN), 'ab+')
+        f_data = open("./data/train/data_600m_interval%d_len%d.bin"%(self.interval, self.LEN), 'ab+')
+        f_index = open("./data/train/index_600m_interval%d_len%d.bin"%(self.interval, self.LEN), 'ab+')
         self.scale = self.flnms[flnm]["scale"]
         data_s = self._split_data(data, cols)
         data_s = data_s.sort_values(by=["split", cols.frame, cols.car_id]).reset_index(drop=True)
